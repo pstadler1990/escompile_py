@@ -59,6 +59,7 @@ class Scanner:
         self.char_offset: int = 0
         self.cur_char: str = ''
         self.str_len: int = 0
+        self.opening_str: bool = False
 
     def scan_str(self, input_str: str) -> None:
         """
@@ -79,8 +80,13 @@ class Scanner:
             if self.cur_char.isspace():
                 self._skip_whitespace()
 
-            if self.cur_char.isdigit() or self.cur_char == '.':
-                return Token(TokenType.NUMBER, self._scan_number())
+            if self.cur_char == '(':
+                self._advance()
+                return Token(TokenType.LPARENT)
+
+            if self.cur_char == ')':
+                self._advance()
+                return Token(TokenType.RPARENT)
 
             if self.cur_char == '+':
                 self._advance()
@@ -98,8 +104,16 @@ class Scanner:
                 self._advance()
                 return Token(TokenType.MULTIPLY)
 
+            if self.cur_char.isdigit() or self.cur_char == '.':
+                return Token(TokenType.NUMBER, self._scan_number())
+
             if self.cur_char == '\"':
+                if self.opening_str:
+                    raise ScanWrongTokenException('Missing closing quotes')
                 return Token(TokenType.STRING, self._scan_string())
+
+            if self.cur_char.isalpha() or self.cur_char == '_':
+                return self._scan_identifier_or_keyword()
 
             raise ScanWrongTokenException('Wrong character {c} at {o}'.format(c=self.cur_char, o=self.char_offset))
 
@@ -133,6 +147,7 @@ class Scanner:
         return float(tmp_num)
 
     def _scan_string(self) -> str:
+        self.opening_str = True
         tmp_str = ''
         self._advance()
         while self.cur_char is not None and self.cur_char != '\"':
@@ -141,6 +156,45 @@ class Scanner:
 
         if self.cur_char == '\"':
             self._advance()
+            self.opening_str = False
             return tmp_str
         else:
             raise ScanWrongTokenException()
+
+    def _scan_identifier_or_keyword(self) -> Token:
+        off = 0
+        tmp_str = ''
+        while self.cur_char is not None and (self.cur_char.isalpha() or self.cur_char.isdigit() or self.cur_char == '_'):
+            if self.cur_char.isdigit() and off == 0:
+                raise ScanWrongTokenException('Identifiers must not start with a digit')
+            tmp_str += self.cur_char
+            self._advance()
+            off += 1
+
+        slen = len(tmp_str)
+        if slen == 2:
+            if tmp_str == 'if':
+                return Token(TokenType.BLOCK_IF)
+        elif slen == 3:
+            if tmp_str == 'let':
+                return Token(TokenType.LET)
+        elif slen == 4:
+            if tmp_str == 'then':
+                return Token(TokenType.BLOCK_THEN)
+            elif tmp_str == 'else':
+                return Token(TokenType.BLOCK_ELSE)
+        elif slen == 5:
+            if tmp_str == 'endif':
+                return Token(TokenType.BLOCK_ENDIF)
+            elif tmp_str == 'break':
+                return Token(TokenType.LOOP_BREAK)
+        elif slen == 6:
+            if tmp_str == 'repeat':
+                return Token(TokenType.LOOP_REPEAT)
+            elif tmp_str == 'elseif':
+                return Token(TokenType.BLOCK_ELSEIF)
+        elif slen == 7:
+            if tmp_str == 'forever':
+                return Token(TokenType.LOOP_FOREVER)
+
+        return Token(TokenType.IDENTIFIER, tmp_str)

@@ -31,11 +31,23 @@ class TestScanner(unittest.TestCase):
 
     def test_strings(self):
         scanner = Scanner()
-        scanner.scan_str('"Hello World" "A very very very very very very very very long string" "This should" fail"')
+        scanner.scan_str('"Hello World" "A very very very very very very very very long string" "This should"fail"')
         self.assertTrue(len(str(scanner.next_token().value)) == 11)
         self.assertTrue(len(str(scanner.next_token().value)) == 53)
         self.assertTrue(len(str(scanner.next_token().value)) == 11)
+        self.assertTrue(scanner.next_token().ttype == TokenType.IDENTIFIER)
         self.assertRaises(ScanWrongTokenException, lambda: scanner.next_token())
+
+    def test_identifiers(self):
+        scanner = Scanner()
+        scanner.scan_str('let if repeat a ifif elseif elseiff')
+        self.assertTrue(scanner.next_token().ttype == TokenType.LET)
+        self.assertTrue(scanner.next_token().ttype == TokenType.BLOCK_IF)
+        self.assertTrue(scanner.next_token().ttype == TokenType.LOOP_REPEAT)
+        self.assertTrue(scanner.next_token().ttype == TokenType.IDENTIFIER)
+        self.assertTrue(scanner.next_token().ttype == TokenType.IDENTIFIER)
+        self.assertTrue(scanner.next_token().ttype == TokenType.BLOCK_ELSEIF)
+        self.assertTrue(scanner.next_token().ttype == TokenType.IDENTIFIER)
 
 
 if __name__ == '__main__':
