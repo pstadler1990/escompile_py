@@ -11,6 +11,7 @@ class TokenType(enum.Enum):
     MINUS = 12
     MULTIPLY = 13
     DIVIDE = 14
+    BANG = 15
 
     LPARENT = 20
     RPARENT = 21
@@ -32,6 +33,12 @@ class TokenType(enum.Enum):
     LOOP_REPEAT = 50
     LOOP_FOREVER = 51
     LOOP_BREAK = 52
+
+    LOG_NOT = 60
+    LOG_AND = 61
+    LOG_OR = 62
+
+    EOF = 999
 
 
 class Token(object):
@@ -55,108 +62,113 @@ class Scanner:
     Tokenizer
     """
     def __init__(self):
-        self.str_stream: str = ''
-        self.char_offset: int = 0
-        self.cur_char: str = ''
-        self.str_len: int = 0
-        self.opening_str: bool = False
+        self._str_stream: str = ''
+        self._char_offset: int = 0
+        self._cur_char: str = ''
+        self._str_len: int = 0
+        self._opening_str: bool = False
 
     def scan_str(self, input_str: str) -> None:
         """
         Tokenize given input stream of type str
         :param input_str: Stream
         """
-        self.str_stream = input_str
-        self.str_len = len(self.str_stream)
-        self.char_offset = 0
-        self.cur_char = self.str_stream[self.char_offset]
+        self._str_stream = input_str
+        self._str_len = len(self._str_stream)
+        self._char_offset = 0
+        self._cur_char = self._str_stream[self._char_offset]
 
     def next_token(self) -> Token:
         """
         Get next available token
         :return: Token instance
         """
-        while self.cur_char is not None:
-            if self.cur_char.isspace():
+        while self._cur_char is not None:
+            if self._cur_char.isspace():
                 self._skip_whitespace()
 
-            if self.cur_char == '(':
+            if self._cur_char == '(':
                 self._advance()
                 return Token(TokenType.LPARENT)
 
-            if self.cur_char == ')':
+            if self._cur_char == ')':
                 self._advance()
                 return Token(TokenType.RPARENT)
 
-            if self.cur_char == '+':
+            if self._cur_char == '+':
                 self._advance()
                 return Token(TokenType.PLUS)
 
-            if self.cur_char == '-':
+            if self._cur_char == '-':
                 self._advance()
                 return Token(TokenType.MINUS)
 
-            if self.cur_char == '/':
+            if self._cur_char == '/':
                 self._advance()
                 return Token(TokenType.DIVIDE)
 
-            if self.cur_char == '*':
+            if self._cur_char == '*':
                 self._advance()
                 return Token(TokenType.MULTIPLY)
 
-            if self.cur_char.isdigit() or self.cur_char == '.':
+            if self._cur_char == '=':
+                self._advance()
+                # TODO: Peek next char to be another =  -> results in == (comparison operator)
+                return Token(TokenType.EQUALS)
+
+            if self._cur_char.isdigit() or self._cur_char == '.':
                 return Token(TokenType.NUMBER, self._scan_number())
 
-            if self.cur_char == '\"':
-                if self.opening_str:
+            if self._cur_char == '\"':
+                if self._opening_str:
                     raise ScanWrongTokenException('Missing closing quotes')
                 return Token(TokenType.STRING, self._scan_string())
 
-            if self.cur_char.isalpha() or self.cur_char == '_':
+            if self._cur_char.isalpha() or self._cur_char == '_':
                 return self._scan_identifier_or_keyword()
 
-            raise ScanWrongTokenException('Wrong character {c} at {o}'.format(c=self.cur_char, o=self.char_offset))
+            raise ScanWrongTokenException('Wrong character {c} at {o}'.format(c=self._cur_char, o=self._char_offset))
 
     def _advance(self) -> None:
-        if self.char_offset + 1 < self.str_len:
-            self.char_offset += 1
-            self.cur_char = self.str_stream[self.char_offset]
+        if self._char_offset + 1 < self._str_len:
+            self._char_offset += 1
+            self._cur_char = self._str_stream[self._char_offset]
         else:
             self._scan_complete()
 
     def _scan_complete(self) -> None:
-        self.cur_char = None
+        self._cur_char = None
 
     def _skip_whitespace(self) -> None:
-        while self.cur_char is not None and self.cur_char.isspace():
+        while self._cur_char is not None and self._cur_char.isspace():
             self._advance()
 
     def _scan_number(self) -> float:
         tmp_num = ''
         scan_float = False
-        while self.cur_char is not None and (self.cur_char.isdigit() or self.cur_char == '.'):
-            if self.cur_char == '.':
+        while self._cur_char is not None and (self._cur_char.isdigit() or self._cur_char == '.'):
+            if self._cur_char == '.':
                 # Leading dot without digit (.3)
                 if not scan_float:
                     scan_float = True
                 else:
                     raise ScanWrongTokenException()
 
-            tmp_num += self.cur_char
+            tmp_num += self._cur_char
             self._advance()
         return float(tmp_num)
 
     def _scan_string(self) -> str:
-        self.opening_str = True
+        self._opening_str = True
         tmp_str = ''
         self._advance()
-        while self.cur_char is not None and self.cur_char != '\"':
-            tmp_str += self.cur_char
+        while self._cur_char is not None and self._cur_char != '\"':
+            tmp_str += self._cur_char
             self._advance()
 
-        if self.cur_char == '\"':
+        if self._cur_char == '\"':
             self._advance()
-            self.opening_str = False
+            self._opening_str = False
             return tmp_str
         else:
             raise ScanWrongTokenException()
@@ -164,10 +176,10 @@ class Scanner:
     def _scan_identifier_or_keyword(self) -> Token:
         off = 0
         tmp_str = ''
-        while self.cur_char is not None and (self.cur_char.isalpha() or self.cur_char.isdigit() or self.cur_char == '_'):
-            if self.cur_char.isdigit() and off == 0:
+        while self._cur_char is not None and (self._cur_char.isalpha() or self._cur_char.isdigit() or self._cur_char == '_'):
+            if self._cur_char.isdigit() and off == 0:
                 raise ScanWrongTokenException('Identifiers must not start with a digit')
-            tmp_str += self.cur_char
+            tmp_str += self._cur_char
             self._advance()
             off += 1
 
