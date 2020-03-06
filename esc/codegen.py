@@ -28,7 +28,6 @@ class CodeGenerator(NodeVisitor):
         print(value)
 
     def visit_TermNode(self, node: TermNode):
-        print('visit termnode')
         if node.op == OpType.ADD:
             return self.visit(node.left) + self.visit(node.right)
         elif node.op == OpType.SUB:

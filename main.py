@@ -1,4 +1,4 @@
-from codegen import CodeGenerator
+from esc.codegen import CodeGenerator
 from esc.parser import Parser
 
 if __name__ == '__main__':

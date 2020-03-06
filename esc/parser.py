@@ -1,7 +1,6 @@
 import abc
 import enum
-from typing import Union, Type
-
+from typing import Union
 from esc.scanner import Scanner, TokenType, Token
 
 
