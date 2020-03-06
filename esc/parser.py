@@ -70,7 +70,7 @@ class ParseSyntaxException(Exception):
 class Parser:
     def __init__(self):
         self._scanner = Scanner()
-        self._scanner.scan_str('let a = 3*4+2')
+        self._scanner.scan_str('let a = (3*4)+(18/9)')
         self._cur_token: Token = self._scanner.next_token()
         self._statements: [StatementNode] = []
 
@@ -113,51 +113,55 @@ class Parser:
 
     def _parse_expression(self) -> ExpressionNode:
         node = ExpressionNode()
-        node.left = self._parse_andexpr()
+        node_tmp = self._parse_andexpr()
 
         t = self._cur_token_type()
         while t == TokenType.LOG_OR:
             self._accept(TokenType.LOG_OR)
+            node.left = node_tmp
             node.right = self._parse_expression()
             return node
-        return node
+        return node_tmp
 
     def _parse_andexpr(self):
         node = ExpressionNode()
-        node.left = self._parse_notexpr()
+        node_tmp = self._parse_notexpr()
 
         t = self._cur_token_type()
         while t == TokenType.LOG_AND:
             self._accept(TokenType.LOG_AND)
+            node.left = node_tmp
             node.right = self._parse_andexpr()
             return node
-        return node
+        return node_tmp
 
     def _parse_notexpr(self):
         node = ExpressionNode()
-        node.left = self._parse_compareexpr()
+        node_tmp = self._parse_compareexpr()
 
         t = self._cur_token_type()
         while t == TokenType.LOG_NOT:
             self._accept(TokenType.LOG_NOT)
+            node.left = node_tmp
             node.right = self._parse_compareexpr()
             return node
-        return node
+        return node_tmp
 
-    def _parse_compareexpr(self) -> ExpressionNode:
+    def _parse_compareexpr(self) -> Union[ExpressionNode, TermNode]:
         node = ExpressionNode()
-        node.left = self._parse_addexpr()
+        node_tmp = self._parse_addexpr()
 
         t = self._cur_token_type()
         while t in [TokenType.REL_EQ, TokenType.REL_NOTEQ, TokenType.REL_GT, TokenType.REL_GTEQ, TokenType.REL_LT, TokenType.REL_LTEQ]:
             self._accept(t)
+            node.left = node_tmp
             node.right = self._parse_compareexpr()
             return node
-        return node
+        return node_tmp
 
-    def _parse_addexpr(self) -> TermNode:
+    def _parse_addexpr(self) -> Union[TermNode, ExpressionNode, ValueNode]:
         node = TermNode()
-        node.left = self._parse_multexpr()
+        node_tmp = self._parse_multexpr()
 
         t = self._cur_token_type()
         while t == TokenType.PLUS or t == TokenType.MINUS:
@@ -166,13 +170,14 @@ class Parser:
                 node.op = OpType.ADD
             else:
                 node.op = OpType.SUB
+            node.left = node_tmp
             node.right = self._parse_addexpr()
             return node
-        return node
+        return node_tmp
 
-    def _parse_multexpr(self) -> TermNode:
+    def _parse_multexpr(self) -> Union[TermNode, ExpressionNode, ValueNode]:
         node = TermNode()
-        node.left = self._parse_negateexpr()
+        node_tmp = self._parse_negateexpr()
 
         t = self._cur_token_type()
         while t == TokenType.MULTIPLY or t == TokenType.DIVIDE:
@@ -181,9 +186,10 @@ class Parser:
                 node.op = OpType.MUL
             else:
                 node.op = OpType.DIV
+            node.left = node_tmp
             node.right = self._parse_multexpr()
             return node
-        return node
+        return node_tmp
 
     def _parse_negateexpr(self):
         node = ExpressionNode()
