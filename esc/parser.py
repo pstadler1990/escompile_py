@@ -25,8 +25,8 @@ class Node(abc.ABC):
 class Binary(Node):
     def __init__(self):
         super().__init__()
-        self.left: Node = None
-        self.right: Node = None
+        self.left = None
+        self.right = None
 
 
 class Unary(Node):
@@ -53,10 +53,6 @@ class TermNode(Binary):
         self.op = OpType.NONE
 
 
-class SubexprNode(Binary):
-    pass
-
-
 class ValueNode(Unary):
     def __init__(self, value_type: ValueType):
         super().__init__()
@@ -70,11 +66,13 @@ class ParseSyntaxException(Exception):
 class Parser:
     def __init__(self):
         self._scanner = Scanner()
-        self._scanner.scan_str('let a = (3*4)+(18/9)')
-        self._cur_token: Token = self._scanner.next_token()
+        self._cur_token = None
         self._statements: [StatementNode] = []
 
-    def parse(self):
+    def parse(self, input_str: str) -> [StatementNode]:
+        self._scanner.scan_str(input_str)
+        self._cur_token: Token = self._scanner.next_token()
+        self._statements: [StatementNode] = []
         return self._parse_statements()
 
     def _accept(self, ttype: TokenType):
@@ -92,11 +90,12 @@ class Parser:
         else:
             return TokenType.EOF
 
-    def _parse_statements(self):
+    def _parse_statements(self) -> [StatementNode]:
         t: TokenType = self._cur_token.ttype
 
         if t == TokenType.LET:
             self._statements.append(self._parse_assignment())
+        return self._statements
 
     def _parse_expressions(self):
         pass
