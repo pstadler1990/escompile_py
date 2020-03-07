@@ -2,11 +2,13 @@ import abc
 import enum
 from typing import Union
 from esc.scanner import Scanner, TokenType, Token
+from esc.symbols import SymbolTable, NUM_SCOPES, GLOBAL_SCOPE, SymbolEntryNumber
 
 
 class ValueType(enum.Enum):
     NUMBER = 1
     STRING = 2
+    VARIABLE = 3
 
 
 class OpType(enum.Enum):
@@ -32,6 +34,12 @@ class Unary(Node):
     def __init__(self):
         super().__init__()
         self.value = None
+
+
+class RootNode(Node):
+    def __init__(self):
+        super().__init__()
+        self.nodes = []
 
 
 class StatementNode(Binary):
@@ -67,15 +75,20 @@ class Parser:
         self._scanner = Scanner()
         self._cur_token = None
         self._statements: [StatementNode] = []
+        self._global_symbols = SymbolTable()
+        self._local_symbols = [SymbolTable()] * NUM_SCOPES
+        self._scope = GLOBAL_SCOPE
 
     def parse(self, input_str: str) -> [StatementNode]:
+        node: RootNode = RootNode()
         self._scanner.scan_str(input_str)
         self._cur_token: Token = self._scanner.next_token()
         self._statements: [StatementNode] = []
-        return self._parse_statements()
+        node.nodes = self._parse_statements()
+        return node
 
     def _accept(self, ttype: TokenType):
-        if self._cur_token.ttype == ttype:
+        if self._cur_token is not None and self._cur_token.ttype == ttype:
             self._cur_token = self._scanner.next_token()
         else:
             self._fail()
@@ -90,10 +103,12 @@ class Parser:
             return TokenType.EOF
 
     def _parse_statements(self) -> [StatementNode]:
-        t: TokenType = self._cur_token.ttype
+        t = self._cur_token_type()
 
-        if t == TokenType.LET:
-            self._statements.append(self._parse_assignment())
+        while t != TokenType.EOF:
+            t = self._cur_token_type()
+            if t == TokenType.LET:
+                self._statements.append(self._parse_assignment())
         return self._statements
 
     def _parse_expressions(self):
@@ -106,7 +121,9 @@ class Parser:
         self._accept(TokenType.IDENTIFIER)
         self._accept(TokenType.EQUALS)
         node.right = self._parse_expression()
-
+        # Add to symbols
+        if self._scope == GLOBAL_SCOPE:
+            self._global_symbols.symbol_add(node.left.value, SymbolEntryNumber(num_value=0))
         return node
 
     def _parse_expression(self) -> ExpressionNode:
@@ -223,4 +240,19 @@ class Parser:
             node.value = str(self._cur_token.value)
             self._accept(TokenType.STRING)
             return node
+        elif t == TokenType.IDENTIFIER:
+            if self._scope == GLOBAL_SCOPE:
+                try:
+                    symbol = self._global_symbols.find_symbol(self._cur_token.value)
+                    if isinstance(symbol, SymbolEntryNumber):
+                        node: ValueNode = ValueNode(value_type=ValueType.VARIABLE)
+                        node.value = self._cur_token.value
+                        self._accept(TokenType.IDENTIFIER)
+                        return node
+                except NameError:
+                    self._fail('Symbol not defined')
+                    # TODO: remove fail and  -> If not found: find in current scope
+                    # TODO: If not found in local scope: ERROR: Symbol not found
+            pass
+
 

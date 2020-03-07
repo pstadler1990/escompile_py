@@ -5,6 +5,9 @@ if __name__ == '__main__':
     p = Parser()
     c = CodeGenerator()
 
-    statements = p.parse('let a = (3*4) + (18/9)')
-    test_statement = statements[0]
-    c.generate(test_statement)
+    statements = p.parse('let a = 3 * 42\n'
+                         'let b = 9 + a\n'
+                         'let c = a + b\n'
+                         'let a = 999.69\n')
+    c.generate(statements)
+    print(c._global_symbols)

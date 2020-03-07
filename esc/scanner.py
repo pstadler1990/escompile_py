@@ -84,48 +84,51 @@ class Scanner:
         :return: Token instance
         """
         while self._cur_char is not None:
-            if self._cur_char.isspace():
-                self._skip_whitespace()
+            try:
+                if self._cur_char.isspace():
+                    self._skip_whitespace()
 
-            if self._cur_char == '(':
-                self._advance()
-                return Token(TokenType.LPARENT)
+                if self._cur_char == '(':
+                    self._advance()
+                    return Token(TokenType.LPARENT)
 
-            if self._cur_char == ')':
-                self._advance()
-                return Token(TokenType.RPARENT)
+                if self._cur_char == ')':
+                    self._advance()
+                    return Token(TokenType.RPARENT)
 
-            if self._cur_char == '+':
-                self._advance()
-                return Token(TokenType.PLUS)
+                if self._cur_char == '+':
+                    self._advance()
+                    return Token(TokenType.PLUS)
 
-            if self._cur_char == '-':
-                self._advance()
-                return Token(TokenType.MINUS)
+                if self._cur_char == '-':
+                    self._advance()
+                    return Token(TokenType.MINUS)
 
-            if self._cur_char == '/':
-                self._advance()
-                return Token(TokenType.DIVIDE)
+                if self._cur_char == '/':
+                    self._advance()
+                    return Token(TokenType.DIVIDE)
 
-            if self._cur_char == '*':
-                self._advance()
-                return Token(TokenType.MULTIPLY)
+                if self._cur_char == '*':
+                    self._advance()
+                    return Token(TokenType.MULTIPLY)
 
-            if self._cur_char == '=':
-                self._advance()
-                # TODO: Peek next char to be another =  -> results in == (comparison operator)
-                return Token(TokenType.EQUALS)
+                if self._cur_char == '=':
+                    self._advance()
+                    # TODO: Peek next char to be another =  -> results in == (comparison operator)
+                    return Token(TokenType.EQUALS)
 
-            if self._cur_char.isdigit() or self._cur_char == '.':
-                return Token(TokenType.NUMBER, self._scan_number())
+                if self._cur_char.isdigit() or self._cur_char == '.':
+                    return Token(TokenType.NUMBER, self._scan_number())
 
-            if self._cur_char == '\"':
-                if self._opening_str:
-                    raise ScanWrongTokenException('Missing closing quotes')
-                return Token(TokenType.STRING, self._scan_string())
+                if self._cur_char == '\"':
+                    if self._opening_str:
+                        raise ScanWrongTokenException('Missing closing quotes')
+                    return Token(TokenType.STRING, self._scan_string())
 
-            if self._cur_char.isalpha() or self._cur_char == '_':
-                return self._scan_identifier_or_keyword()
+                if self._cur_char.isalpha() or self._cur_char == '_':
+                    return self._scan_identifier_or_keyword()
+            except AttributeError:
+                break
 
             raise ScanWrongTokenException('Wrong character {c} at {o}'.format(c=self._cur_char, o=self._char_offset))
 
