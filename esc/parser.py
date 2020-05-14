@@ -7,6 +7,7 @@ from esc.scanner import Scanner, TokenType, Token
 class ValueType(enum.Enum):
     NUMBER = 1
     STRING = 2
+    IDENTIFIER = 3
 
 
 class OpType(enum.Enum):
@@ -75,10 +76,11 @@ class Parser:
         return self._parse_statements()
 
     def _accept(self, ttype: TokenType):
-        if self._cur_token.ttype == ttype:
-            self._cur_token = self._scanner.next_token()
-        else:
-            self._fail()
+        if self._cur_token is not None:
+            if self._cur_token.ttype == ttype:
+                self._cur_token = self._scanner.next_token()
+            else:
+                self._fail()
 
     def _fail(self, msg: str = ''):
         raise ParseSyntaxException(msg)
@@ -92,8 +94,12 @@ class Parser:
     def _parse_statements(self) -> [StatementNode]:
         t: TokenType = self._cur_token.ttype
 
-        if t == TokenType.LET:
+        while t == TokenType.LET:
             self._statements.append(self._parse_assignment())
+            if self._cur_token is not None:
+                t: TokenType = self._cur_token.ttype
+            else:
+                break
         return self._statements
 
     def _parse_expressions(self):
@@ -223,4 +229,8 @@ class Parser:
             node.value = str(self._cur_token.value)
             self._accept(TokenType.STRING)
             return node
-
+        elif t == TokenType.IDENTIFIER:
+            node = ValueNode(ValueType.IDENTIFIER)
+            node.value = self._cur_token.value
+            self._accept(TokenType.IDENTIFIER)
+            return node
