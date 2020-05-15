@@ -190,6 +190,8 @@ class Scanner:
         elif slen == 3:
             if tmp_str == 'let':
                 return Token(TokenType.LET)
+            elif tmp_str == 'and':
+                return Token(TokenType.LOG_AND)
         elif slen == 4:
             if tmp_str == 'then':
                 return Token(TokenType.BLOCK_THEN)

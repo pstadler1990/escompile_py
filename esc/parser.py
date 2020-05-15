@@ -17,6 +17,9 @@ class OpType(enum.Enum):
     MUL = 3
     DIV = 4
 
+    EQUALS = 10
+    AND = 11
+
 
 class Node(abc.ABC):
     pass
@@ -40,10 +43,16 @@ class StatementNode(Binary):
 
 
 class ExpressionNode(Binary):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.op = OpType.NONE
 
 
 class AssignmentNode(Binary):
+    pass
+
+
+class IfNode(Binary):
     pass
 
 
@@ -92,15 +101,23 @@ class Parser:
             return TokenType.EOF
 
     def _parse_statements(self) -> [StatementNode]:
+        statements = []
         t: TokenType = self._cur_token.ttype
 
         while t == TokenType.LET:
-            self._statements.append(self._parse_assignment())
+            statements.append(self._parse_assignment())
             if self._cur_token is not None:
-                t: TokenType = self._cur_token.ttype
+                t = self._cur_token.ttype
             else:
                 break
-        return self._statements
+
+        while t == TokenType.BLOCK_IF:
+            statements.append(self._parse_if())
+            if self._cur_token is not None:
+                t = self._cur_token.ttype
+            else:
+                break
+        return statements
 
     def _parse_expressions(self):
         pass
@@ -112,7 +129,20 @@ class Parser:
         self._accept(TokenType.IDENTIFIER)
         self._accept(TokenType.EQUALS)
         node.right = self._parse_expression()
+        return node
 
+    def _parse_if(self) -> IfNode:
+        # if <expr> then <statement(s)>
+        # | if <expr> then
+        #     <statement(s)>
+        #   endif
+        node = IfNode()
+        self._accept(TokenType.BLOCK_IF)
+        node.left = self._parse_expression()
+        self._accept(TokenType.BLOCK_THEN)
+        node.right = self._parse_statements()
+        self._accept(TokenType.BLOCK_ENDIF)
+        # TODO: Else / Elseif
         return node
 
     def _parse_expression(self) -> ExpressionNode:
@@ -127,13 +157,14 @@ class Parser:
             return node
         return node_tmp
 
-    def _parse_andexpr(self):
+    def _parse_andexpr(self) -> ExpressionNode:
         node = ExpressionNode()
-        node_tmp = self._parse_notexpr()
+        node_tmp: ExpressionNode = self._parse_notexpr()
 
         t = self._cur_token_type()
         while t == TokenType.LOG_AND:
             self._accept(TokenType.LOG_AND)
+            node.op = OpType.AND
             node.left = node_tmp
             node.right = self._parse_andexpr()
             return node
@@ -156,8 +187,13 @@ class Parser:
         node_tmp = self._parse_addexpr()
 
         t = self._cur_token_type()
-        while t in [TokenType.REL_EQ, TokenType.REL_NOTEQ, TokenType.REL_GT, TokenType.REL_GTEQ, TokenType.REL_LT, TokenType.REL_LTEQ]:
+        # TODO: REL_EQ (==) replaced with EQUALS (=) to keep it standard BASIC
+        while t in [TokenType.EQUALS, TokenType.REL_NOTEQ, TokenType.REL_GT, TokenType.REL_GTEQ, TokenType.REL_LT, TokenType.REL_LTEQ]:
             self._accept(t)
+            # node.op = t
+            if t == TokenType.EQUALS:
+                node.op = OpType.EQUALS
+            # TODO: Add other types
             node.left = node_tmp
             node.right = self._parse_compareexpr()
             return node
@@ -234,3 +270,5 @@ class Parser:
             node.value = self._cur_token.value
             self._accept(TokenType.IDENTIFIER)
             return node
+        else:
+            self._fail('Invalid value for token')

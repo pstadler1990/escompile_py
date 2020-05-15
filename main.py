@@ -6,8 +6,9 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('let a = 34\n'
-                         'let b = a * 2\n'
-                         'let c = a + b + 2 * a'
+                         'if (a = 3 and 1=2) then\n'
+                         'let b = 12.34\n'
+                         'endif'
                          )
     for statement in statements:
         c.generate(statement)

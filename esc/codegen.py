@@ -1,6 +1,6 @@
 import enum
 import struct
-from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType
+from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode
 from abc import ABC
 
 
@@ -75,7 +75,7 @@ class CodeGenerator(NodeVisitor):
         # TODO: Scopes? Lookup?
         value = self.visit(node.right)
 
-        # TODO: Insert into symbol table
+        # Insert into symbol table
         if self.symbols.get(node.left.value):
             print('Symbol {id} already found'.format(id=node.left.value))
         else:
@@ -95,6 +95,7 @@ class CodeGenerator(NodeVisitor):
             return self.visit(node.left) / self.visit(node.right)
 
     def visit_ValueNode(self, node: ValueNode):
+        print("ValueNode", node)
         if node.value_type == ValueType.IDENTIFIER:
             # let a = b
             tmp_value = self.symbols.get(node.value)
@@ -103,6 +104,23 @@ class CodeGenerator(NodeVisitor):
             except AttributeError:
                 self._fail('Unknown symbol {id}'.format(id=node.value))
         return node.value
+
+    def visit_IfNode(self, node: IfNode):
+        print("If statement", node)
+        # node.left = <conditional expression>  i.e. a = 3 and b > 42
+        self.visit(node.left)
+        # node.right = <statement(s)>   body of if statement
+
+    def visit_ExpressionNode(self, node: ExpressionNode):
+        print("Expression node", node)
+        if node.op == OpType.AND:
+            res1 = self.visit(node.left)
+            res2 = self.visit(node.right)
+            return res1 and res2
+            # TODO: Shorten to self.visit(node.left) and self.visit(node.right) after implementation
+        elif node.op == OpType.EQUALS:
+            return self.visit(node.left) == self.visit(node.right)
+        # TODO: Add other types (OR, LT, GT, LTE, GTE)
 
     def _fail(self, msg: str = ''):
         raise Exception(msg)
