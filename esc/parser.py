@@ -104,15 +104,12 @@ class Parser:
         statements = []
         t: TokenType = self._cur_token.ttype
 
-        while t == TokenType.LET:
-            statements.append(self._parse_assignment())
-            if self._cur_token is not None:
-                t = self._cur_token.ttype
-            else:
-                break
+        while t in [TokenType.LET, TokenType.BLOCK_IF]:
+            if t == TokenType.LET:
+                statements.append(self._parse_assignment())
+            elif t == TokenType.BLOCK_IF:
+                statements.append(self._parse_if())
 
-        while t == TokenType.BLOCK_IF:
-            statements.append(self._parse_if())
             if self._cur_token is not None:
                 t = self._cur_token.ttype
             else:

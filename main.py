@@ -5,9 +5,14 @@ if __name__ == '__main__':
     p = Parser()
     c = CodeGenerator()
 
-    statements = p.parse('let a = 34\n'
-                         'if (a = 3 and 1=2) then\n'
-                         'let b = 12.34\n'
+    statements = p.parse('let a = 42\n'
+                         'let b = 12\n'
+                         'if a = 42 then\n'
+                         'let c = 39.123\n'
+                         'if 1 = 2 then\n'
+                         'let d = c * 2\n'
+                         'endif\n'
+                         'let e = d + 3.14\n'
                          'endif'
                          )
     for statement in statements:
