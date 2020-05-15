@@ -12,3 +12,5 @@ if __name__ == '__main__':
                          )
     for statement in statements:
         c.generate(statement)
+
+    print(c.bytes_out)

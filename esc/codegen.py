@@ -63,6 +63,7 @@ class CodeGenerator(NodeVisitor):
     def __init__(self):
         self.symbols = {}
         self.parser = Parser()
+        self.bytes_out = []
 
     def generate(self, root: Node):
         return self.visit(root)
@@ -82,7 +83,9 @@ class CodeGenerator(NodeVisitor):
             self.symbols[node.left.value] = IntegerSymbol(name=node.left.value, value=value)
             print(self.symbols)
 
-        self._emit_operation(OP.PUSH, arg1=value)
+        # TODO: PUSHL / PUSHG !?
+        varid = 0  # TODO: Decide varid based on scope and the scope's symbol table
+        self._emit_operation(OP.PUSHL, arg1=varid)
 
     def visit_TermNode(self, node: TermNode):
         if node.op == OpType.ADD:
@@ -98,28 +101,46 @@ class CodeGenerator(NodeVisitor):
         print("ValueNode", node)
         if node.value_type == ValueType.IDENTIFIER:
             # let a = b
+            # TODO: emit POP(L|G) [b]
+            # TODO: ValueNode can either PUSH a number value, or POP(L|G) depending on the context of the node visit
+            # TODO: a = 3 (assignment with constant) results in a PUSH <number> followed by a PUSH(L|G) [symtable_pos]
+            # TODO: if(a = 3) ... (expr) results in a POP(L|G) [symtable_pos]
             tmp_value = self.symbols.get(node.value)
             try:
                 return tmp_value.value
             except AttributeError:
                 self._fail('Unknown symbol {id}'.format(id=node.value))
+
+        # self._emit_operation(OP.PUSH, arg1=node.value)
         return node.value
 
     def visit_IfNode(self, node: IfNode):
         print("If statement", node)
-        # node.left = <conditional expression>  i.e. a = 3 and b > 42
+
         self.visit(node.left)
-        # node.right = <statement(s)>   body of if statement
+        bytecnt_before = len(self.bytes_out)
+        self._emit_operation(OP.JZ, arg1=0xFFFFFFFF, arg2=0xFFFFFFFF)
+        # If body
+        for statement in node.right:
+            self.visit(statement)
+        bytecnt_after = len(self.bytes_out)
+        # Patch dummy addresses 0xFFFFFFFF
+        self.bytes_out[bytecnt_before + 1] = ((bytecnt_after >> 24) & 0xFF)
+        self.bytes_out[bytecnt_before + 2] = ((bytecnt_after >> 16) & 0xFF)
+        self.bytes_out[bytecnt_before + 3] = ((bytecnt_after >> 8) & 0xFF)
+        self.bytes_out[bytecnt_before + 4] = (bytecnt_after & 0xFF)
 
     def visit_ExpressionNode(self, node: ExpressionNode):
         print("Expression node", node)
         if node.op == OpType.AND:
-            res1 = self.visit(node.left)
-            res2 = self.visit(node.right)
-            return res1 and res2
-            # TODO: Shorten to self.visit(node.left) and self.visit(node.right) after implementation
+            self.visit(node.left)   # res1
+            self.visit(node.right)  # res2
+            self._emit_operation(OP.AND)
+            # return res1 and res2
         elif node.op == OpType.EQUALS:
-            return self.visit(node.left) == self.visit(node.right)
+            self.visit(node.left)
+            self.visit(node.right)
+            self._emit_operation(OP.EQ)
         # TODO: Add other types (OR, LT, GT, LTE, GTE)
 
     def _fail(self, msg: str = ''):
@@ -132,14 +153,15 @@ class CodeGenerator(NodeVisitor):
             self._fail('OP code must not exceed 256')
         bytes_out.append(op.value)
 
-        if arg1 < 0xFFFFFFFF:
+        if arg1 <= 0xFFFFFFFF:
             bytes_out.extend(list(struct.pack('f', arg1)))
         else:
             self._fail('Argument 1 is too large')
 
-        if arg2 < 0xFFFFFFFF:
+        if arg2 <= 0xFFFFFFFF:
             bytes_out.extend(list(struct.pack('f', arg2)))
         else:
             self._fail('Argument 2 is too large')
 
-        print(bytes_out)
+        # print(bytes_out)
+        self.bytes_out.extend(bytes_out)
