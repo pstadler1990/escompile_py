@@ -179,7 +179,7 @@ class CodeGenerator(NodeVisitor):
 
         self.visit(node.left)
         bytecnt_before = len(self.bytes_out)
-        self._emit_operation(OP.JZ, arg1=0xFFFFFFFF, arg2=0xFFFFFFFF)
+        self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
         # If body
         self._open_scope()
         for statement in node.right:
@@ -209,22 +209,33 @@ class CodeGenerator(NodeVisitor):
     def _fail(self, msg: str = ''):
         raise Exception(msg)
 
-    def _emit_operation(self, op: OP, arg1=0x00000000, arg2=0x00000000):
+    def _emit_operation(self, op: OP, arg1=None, arg2=None):
         # [1 Byte OP][4 Byte arg1][4 Byte arg2]
         bytes_out: list = []
         if op.value > 256:
             self._fail('OP code must not exceed 256')
         bytes_out.append(op.value)
 
-        if arg1 <= 0xFFFFFFFF:
-            bytes_out.extend(list(struct.pack('f', arg1)))
-        else:
-            self._fail('Argument 1 is too large')
+        if arg1 is not None:
+            if arg1 <= 0xFFFFFFFF:
+                b = list(bytearray.fromhex(hex(struct.unpack('<Q', struct.pack('<d', arg1))[0]).lstrip('0x')))
+                while len(b) < 8:
+                    b.append(0x00)
+                bytes_out.extend(b)
+            else:
+                self._fail('Argument 1 is too large')
 
-        if arg2 <= 0xFFFFFFFF:
-            bytes_out.extend(list(struct.pack('f', arg2)))
-        else:
-            self._fail('Argument 2 is too large')
+        if arg2 is not None:
+            if arg2 <= 0xFFFFFFFF:
+                b = list(bytearray.fromhex(hex(struct.unpack('<Q', struct.pack('<d', arg2))[0]).lstrip('0x')))
+                while len(b) < 8:
+                    b.append(0x00)
+                bytes_out.extend(b)
+            else:
+                self._fail('Argument 2 is too large')
 
-        print(bytes_out)
+        while len(bytes_out) < 9:
+            bytes_out.append(0x00)
+
+        print([hex(b) for b in bytes_out])
         self.bytes_out.extend(bytes_out)

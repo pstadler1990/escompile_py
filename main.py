@@ -12,7 +12,7 @@ if __name__ == '__main__':
                          'if 1 = 2 then\n'
                          'let d = c * 2\n'
                          'endif\n'
-                         'let e = d + 3.14\n'
+                         'let e = 3.14\n'
                          'endif'
                          )
     for statement in statements:
