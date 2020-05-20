@@ -164,8 +164,8 @@ class Parser:
         if self._cur_token_type() == TokenType.BLOCK_ELSE:
             self._accept(TokenType.BLOCK_ELSE)
             node.elsenode = self._parse_statements()
-        else:
-            self._accept(TokenType.BLOCK_ENDIF)
+
+        self._accept(TokenType.BLOCK_ENDIF)
         return node
 
     def _parse_call(self, func):
