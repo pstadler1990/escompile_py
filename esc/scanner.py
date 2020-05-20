@@ -89,6 +89,8 @@ class Scanner:
         while self._cur_char is not None:
             if self._cur_char.isspace():
                 self._skip_whitespace()
+                if self._cur_char is None:
+                    return
 
             if self._cur_char == '(':
                 self._advance()

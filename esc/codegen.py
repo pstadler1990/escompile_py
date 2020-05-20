@@ -75,8 +75,10 @@ class CodeGenerator(NodeVisitor):
 
     def finalize(self):
         # merge multiple CONCAT ops
+        out_stream = []
         for b in self.bytes_out:
-            print(b)
+            out_stream.append(str(b))
+        return out_stream
 
     def _symbol_exists(self, symbol: str, scope: int = 0):
         return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)), None) is not None
