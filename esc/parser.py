@@ -150,6 +150,17 @@ class Parser:
         self._accept(TokenType.BLOCK_THEN)
         node.right = self._parse_statements()
 
+        t = self._cur_token_type()
+        while t == TokenType.BLOCK_ELSEIF:
+            self._accept(TokenType.BLOCK_ELSEIF)
+            n = IfNode()
+            n.left = self._parse_expression()
+            self._accept(TokenType.BLOCK_THEN)
+            n.right = self._parse_statements()
+            node.elseifnodes.append(n)
+
+            t = self._cur_token_type()
+
         if self._cur_token_type() == TokenType.BLOCK_ELSE:
             self._accept(TokenType.BLOCK_ELSE)
             node.elsenode = self._parse_statements()
