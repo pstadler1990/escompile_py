@@ -38,6 +38,9 @@ class TokenType(enum.Enum):
     LOG_AND = 61
     LOG_OR = 62
 
+    # Built-in functions
+    CALL_PRINT = 70
+
     EOF = 999
 
 
@@ -202,6 +205,8 @@ class Scanner:
                 return Token(TokenType.BLOCK_ENDIF)
             elif tmp_str == 'break':
                 return Token(TokenType.LOOP_BREAK)
+            elif tmp_str == 'print':
+                return Token(TokenType.CALL_PRINT)
         elif slen == 6:
             if tmp_str == 'repeat':
                 return Token(TokenType.LOOP_REPEAT)

@@ -1,6 +1,7 @@
 import enum
 import struct
-from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode
+from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
+    CallNode
 from abc import ABC
 
 
@@ -12,6 +13,7 @@ class OP(enum.Enum):
     POPL = 0x13
     PUSH = 0x14
     POP = 0x15
+    PUSHS = 0x16
 
     EQ = 0x20
     LT = 0x21
@@ -55,7 +57,7 @@ class NodeVisitor:
         visitor = getattr(self, method_name, self._generic_visit)
         return visitor(node, parent)
 
-    def _generic_visit(self, node: Node):
+    def _generic_visit(self, node: Node, parent: Node = None):
         raise Exception('No visit_{} method'.format(type(node).__name__))
 
 
@@ -66,9 +68,15 @@ class CodeGenerator(NodeVisitor):
         self.parser = Parser()
         self.bytes_out = []
         self.scope = 0
+        self.concat_mode = 0
 
     def generate(self, root: Node):
         return self.visit(root)
+
+    def finalize(self):
+        # merge multiple CONCAT ops
+        for b in self.bytes_out:
+            print(b)
 
     def _symbol_exists(self, symbol: str, scope: int = 0):
         return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)), None) is not None
@@ -79,7 +87,7 @@ class CodeGenerator(NodeVisitor):
             sym = next(filter(lambda s: s.name == symbol, self.symbols.get(scope)), None)
             sym_index = self.symbols.get(scope).index(sym)
             return sym, sym_index, scope
-        except ValueError:
+        except:
             if scope != 0:
                 return self._find_symbol(symbol, scope=0)
             else:
@@ -93,7 +101,6 @@ class CodeGenerator(NodeVisitor):
             self.symbols.get(scope).append(symbol)
 
     def _open_scope(self):
-        # TODO: Opening a scope needs to copy all the symbols from the previous scope into the new symbol table
         if self.scope > 0:
             for symbol in self.symbols.get(self.scope):
                 self._insert_symbol(symbol, scope=self.scope + 1)
@@ -127,51 +134,56 @@ class CodeGenerator(NodeVisitor):
 
     def visit_TermNode(self, node: TermNode, parent: Node = None):
         if node.op == OpType.ADD:
-            return self.visit(node.left, node) + self.visit(node.right, node)
+            res1 = self.visit(node.left, node)
+            res2 = self.visit(node.right, node)
+            if isinstance(res1, float) and isinstance(res2, float):
+                # Constant addition
+                # FIXME: Instead of the two PUSHes of res1 and res2 and the ADD instr,
+                # FIXME: we should only PUSH the result of the addition
+                self._emit_operation(OP.ADD)
+                return res1 + res2
+            else:
+                # Mixed string addition (concatenate)
+                # TODO: We need to determine, which concat param is pushed first (OP_CONCAT_LEFT | RIGHT)
+                self._emit_operation(OP.CONCAT, arg1=self.concat_mode)
+
         elif node.op == OpType.SUB:
-            return self.visit(node.left, node) - self.visit(node.right, node)
+            res1 = self.visit(node.left, node)
+            res2 = self.visit(node.right, node)
+            return res1 - res2
         elif node.op == OpType.MUL:
-            return self.visit(node.left, node) * self.visit(node.right, node)
+            res1 = self.visit(node.left, node)
+            res2 = self.visit(node.right, node)
+            return res1 * res2
         elif node.op == OpType.DIV:
-            return self.visit(node.left, node) / self.visit(node.right, node)
+            res1 = self.visit(node.left, node)
+            res2 = self.visit(node.right, node)
+            return res1 / res2
 
     def visit_ValueNode(self, node: ValueNode, parent: Node = None):
         print("ValueNode", node, " with parent ", parent)
-
         # let a = 3         -> AssignmentNode       PUSH 3, PUSH(L|G) [index a]
         # let a = 3 + 3     -> TermNode             PUSH 3, PUSH 3, ADD, PUSH(L|G) [index a]
         # let a = b         -> AssignmentNode       POP(L|G) [b], PUSH(L|G) [index a]
         # let a = b * 2
         # if a = 2
         # if a + 2 = 3
-
         if node.value_type == ValueType.IDENTIFIER:
-            # let a = b
-            # TODO: emit POP(L|G) [b]
-            # TODO: ValueNode can either PUSH a number value, or POP(L|G) depending on the context of the node visit
-            # TODO: a = 3 (assignment with constant) results in a PUSH <number> followed by a PUSH(L|G) [symtable_pos]
-            # is_rvalue = any(isinstance(parent, n) for n in [AssignmentNode])
-            # TODO: if(a = 3) ... (expr) results in a POP(L|G) [symtable_pos]
-
-            # if is_rvalue:
-            #    # RVALUE means constant assignment, so PUSH value
-            #    self._emit_operation(OP.PUSH, arg1=node.value)
-
-            # tmp_value = self.symbols.get(node.value)    # TODO: Remove as we cannot receive the value here
-            # pop_index = self.symbols.index(...) TODO: Replace dict with proper data structure
             try:
                 tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.value, self.scope)
-                # TODO: POP(L|G) variable
                 if tmp_scope == 0:
                     self._emit_operation(OP.POPG, arg1=tmp_index)
                 else:
-                    self._emit_operation(OP.POP, arg1=tmp_index)
+                    self._emit_operation(OP.POPL, arg1=tmp_index)
                 return tmp_symbol.value  # return pop_index
             except AttributeError:
                 self._fail('Unknown symbol {id}'.format(id=node.value))
         elif node.value_type == ValueType.NUMBER:
             # Initialize with constant
             self._emit_operation(OP.PUSH, arg1=node.value)
+        elif node.value_type == ValueType.STRING:
+            # PUSHS string
+            self._emit_operation(OP.PUSHS, arg1=len(node.value), arg2=node.value)
         return node.value
 
     def visit_IfNode(self, node: IfNode, parent: Node = None):
@@ -184,7 +196,22 @@ class CodeGenerator(NodeVisitor):
         self._open_scope()
         for statement in node.right:
             self.visit(statement)
+
         bytecnt_after = len(self.bytes_out)
+
+        if node.elsenode:
+            bytecnt_before_else = bytecnt_after + 1
+            bytecnt_after += 9
+            self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
+            for statement in node.elsenode:
+                self.visit(statement)
+
+            bytecnt_after_else = len(self.bytes_out)
+            self.bytes_out[bytecnt_before_else + 1] = ((bytecnt_after_else >> 24) & 0xFF)
+            self.bytes_out[bytecnt_before_else + 2] = ((bytecnt_after_else >> 16) & 0xFF)
+            self.bytes_out[bytecnt_before_else + 3] = ((bytecnt_after_else >> 8) & 0xFF)
+            self.bytes_out[bytecnt_before_else + 4] = (bytecnt_after_else & 0xFF)
+
         # Patch dummy addresses 0xFFFFFFFF
         self.bytes_out[bytecnt_before + 1] = ((bytecnt_after >> 24) & 0xFF)
         self.bytes_out[bytecnt_before + 2] = ((bytecnt_after >> 16) & 0xFF)
@@ -206,6 +233,16 @@ class CodeGenerator(NodeVisitor):
             self._emit_operation(OP.EQ)
         # TODO: Add other types (OR, LT, GT, LTE, GTE)
 
+    def visit_CallNode(self, node: CallNode, parent: Node = None):
+        print("Call node", node)
+        if node.type.lower() == 'print':
+            # Print signature:
+            # PUSH STRING <param> | BUILD STRING <param> onto STACK
+            self.visit(node.value)
+            # CALL __print
+            self._emit_operation(OP.PRINT)
+            pass
+
     def _fail(self, msg: str = ''):
         raise Exception(msg)
 
@@ -214,6 +251,7 @@ class CodeGenerator(NodeVisitor):
         bytes_out: list = []
         if op.value > 256:
             self._fail('OP code must not exceed 256')
+
         bytes_out.append(op.value)
 
         if arg1 is not None:
@@ -226,16 +264,22 @@ class CodeGenerator(NodeVisitor):
                 self._fail('Argument 1 is too large')
 
         if arg2 is not None:
-            if arg2 <= 0xFFFFFFFF:
-                b = list(bytearray.fromhex(hex(struct.unpack('<Q', struct.pack('<d', arg2))[0]).lstrip('0x')))
-                while len(b) < 8:
-                    b.append(0x00)
-                bytes_out.extend(b)
+            if isinstance(arg2, str):
+                bytes_out.extend(arg2.encode())
             else:
-                self._fail('Argument 2 is too large')
+                if arg2 <= 0xFFFFFFFF:
+                    b = list(bytearray.fromhex(hex(struct.unpack('<Q', struct.pack('<d', arg2))[0]).lstrip('0x')))
+                    while len(b) < 8:
+                        b.append(0x00)
+                    bytes_out.extend(b)
+                else:
+                    self._fail('Argument 2 is too large')
 
-        while len(bytes_out) < 9:
-            bytes_out.append(0x00)
+        if op != OP.PUSHS:
+            while len(bytes_out) < 9:
+                bytes_out.append(0x00)
+            if len(bytes_out) != 9:
+                self._fail('OP and / or arguments are invalid')
 
         print([hex(b) for b in bytes_out])
         self.bytes_out.extend(bytes_out)

@@ -53,7 +53,16 @@ class AssignmentNode(Binary):
 
 
 class IfNode(Binary):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.elsenode = None
+        self.elseifnodes = []
+
+
+class CallNode(Unary):
+    def __init__(self):
+        super().__init__()
+        self.type = ''
 
 
 class TermNode(Binary):
@@ -104,11 +113,13 @@ class Parser:
         statements = []
         t: TokenType = self._cur_token.ttype
 
-        while t in [TokenType.LET, TokenType.BLOCK_IF]:
+        while t in [TokenType.LET, TokenType.BLOCK_IF, TokenType.CALL_PRINT]:
             if t == TokenType.LET:
                 statements.append(self._parse_assignment())
             elif t == TokenType.BLOCK_IF:
                 statements.append(self._parse_if())
+            elif t == TokenType.CALL_PRINT:
+                statements.append(self._parse_call(func='print'))
 
             if self._cur_token is not None:
                 t = self._cur_token.ttype
@@ -138,9 +149,28 @@ class Parser:
         node.left = self._parse_expression()
         self._accept(TokenType.BLOCK_THEN)
         node.right = self._parse_statements()
-        self._accept(TokenType.BLOCK_ENDIF)
-        # TODO: Else / Elseif
+
+        if self._cur_token_type() == TokenType.BLOCK_ELSE:
+            self._accept(TokenType.BLOCK_ELSE)
+            node.elsenode = self._parse_statements()
+        else:
+            self._accept(TokenType.BLOCK_ENDIF)
         return node
+
+    def _parse_call(self, func):
+        # Call the specified function <func>
+        # Available functions:
+        #  - PRINT(str)
+        node = CallNode()
+        if len(func):
+            node.type = func
+            self._accept(TokenType.CALL_PRINT)
+            self._accept(TokenType.LPARENT)
+            node.value = self._parse_expression()
+            self._accept(TokenType.RPARENT)
+            return node
+        else:
+            self._fail('Cannot call undefined function')
 
     def _parse_expression(self) -> ExpressionNode:
         node = ExpressionNode()
@@ -184,7 +214,6 @@ class Parser:
         node_tmp = self._parse_addexpr()
 
         t = self._cur_token_type()
-        # TODO: REL_EQ (==) replaced with EQUALS (=) to keep it standard BASIC
         while t in [TokenType.EQUALS, TokenType.REL_NOTEQ, TokenType.REL_GT, TokenType.REL_GTEQ, TokenType.REL_LT, TokenType.REL_LTEQ]:
             self._accept(t)
             # node.op = t
