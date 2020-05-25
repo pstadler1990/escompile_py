@@ -1,3 +1,4 @@
+import binascii
 import enum
 import struct
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
@@ -35,6 +36,10 @@ class OP(enum.Enum):
     JMP = 0x41
 
     PRINT = 0x50
+
+    @classmethod
+    def has(cls, value):
+        return value in cls._value2member_map_
 
 
 class Symbol(ABC):
@@ -79,6 +84,59 @@ class CodeGenerator(NodeVisitor):
         for b in self.bytes_out:
             out_stream.append(str(b))
         return out_stream
+
+    def _format_arg(self, bc):
+        a1 = self.bytes_out[bc + 1]
+        a2 = self.bytes_out[bc + 2]
+        a3 = self.bytes_out[bc + 3]
+        a4 = self.bytes_out[bc + 4]
+        a5 = self.bytes_out[bc + 5]
+        a6 = self.bytes_out[bc + 6]
+        a7 = self.bytes_out[bc + 7]
+        a8 = self.bytes_out[bc + 8]
+        bts = str(hex((
+                    ((a1 & 0xFF) << 56) |
+                    ((a2 & 0xFF) << 48) |
+                    ((a3 & 0xFF) << 40) |
+                    ((a4 & 0xFF) << 32) |
+                    ((a5 & 0xFF) << 24) |
+                    ((a6 & 0xFF) << 16) |
+                    ((a7 & 0xFF) << 8) |
+                    (a8 & 0xFF))))[2:]
+        if len(bts) < 2:
+            return 0
+        try:
+            return struct.unpack('>d', binascii.unhexlify(bts.strip()))[0]
+        except struct.error:
+            return -1
+
+    def format(self):
+        lc: int = 0
+        bc: int = 0
+
+        while bc < len(self.bytes_out):
+            b = self.bytes_out[bc]
+            if OP.has(b):
+                if b in [OP.PUSHS.value]:
+                    # String len
+                    strlen = int(self._format_arg(bc))
+                    ostr: str = ''
+                    brem: int = 0
+                    while brem < strlen:
+                        ostr += chr(self.bytes_out[bc + 9 + brem])
+                        brem += 1
+                    print("{lc} @ {adr}\t\t{op}\t\"{str}\"".format(lc=lc, adr=bc, op=OP.value2member_map_[b], str=ostr))
+                    bc += strlen + 9
+                else:
+                    arg1 = self._format_arg(bc)
+                    # arg2 = self._format_arg(bc + 9)
+                    print("{lc} @ {adr}\t\t{op}\t\t{a1}".format(lc=lc, adr=bc, op=OP.value2member_map_[b], a1=arg1))
+                    brem: int = 9
+                    while brem > 0:
+                        brem -= 1
+                        bc += 1
+
+                lc += 1
 
     def _symbol_exists(self, symbol: str, scope: int = 0):
         return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)), None) is not None
@@ -190,42 +248,93 @@ class CodeGenerator(NodeVisitor):
 
     def visit_IfNode(self, node: IfNode, parent: Node = None):
         print("If statement", node)
+        patches = []
 
         self.visit(node.left)
-        bytecnt_before = len(self.bytes_out)
+
+        # patch_head = len(self.bytes_out)
+        patches.append(len(self.bytes_out))
+
         self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
         # If body
         self._open_scope()
         for statement in node.right:
             self.visit(statement)
 
-        bytecnt_after = len(self.bytes_out)
+        # bytecnt_after = len(self.bytes_out)
+
+        if node.elseifnodes:
+            # 1. Patch root IF node to address of first elseif node
+            bytecnt_before_elif = len(self.bytes_out)
+            # Patch dummy addresses 0xFFFFFFFF
+            patch_head = patches.pop()
+            self.bytes_out[patch_head + 1] = ((bytecnt_before_elif >> 24) & 0xFF)
+            self.bytes_out[patch_head + 2] = ((bytecnt_before_elif >> 16) & 0xFF)
+            self.bytes_out[patch_head + 3] = ((bytecnt_before_elif >> 8) & 0xFF)
+            self.bytes_out[patch_head + 4] = (bytecnt_before_elif & 0xFF)
+
+            for cnt, elifnode in enumerate(node.elseifnodes):
+                # Evalulate if(<expr>)
+                self.visit(elifnode.left)
+
+                # patch_head = len(self.bytes_out)
+                patches.append(len(self.bytes_out))
+                self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
+
+                for statement in elifnode.right:
+                    self.visit(statement)
+
+                if node.elsenode and (cnt >= len(node.elseifnodes) - 1):
+                    bytecnt_after_elif = len(self.bytes_out) + 9
+                else:
+                    bytecnt_after_elif = len(self.bytes_out)
+
+                patch_head = patches.pop()
+                self.bytes_out[patch_head + 1] = ((bytecnt_after_elif >> 24) & 0xFF)
+                self.bytes_out[patch_head + 2] = ((bytecnt_after_elif >> 16) & 0xFF)
+                self.bytes_out[patch_head + 3] = ((bytecnt_after_elif >> 8) & 0xFF)
+                self.bytes_out[patch_head + 4] = (bytecnt_after_elif & 0xFF)
+
+                self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
+                patches.append(len(self.bytes_out))
 
         if node.elsenode:
-            bytecnt_before_else = bytecnt_after + 1
-            bytecnt_after += 9
+            # Patch previous IF / ELSEIF with ELSE + 1
+            bytecnt_after_else = len(self.bytes_out) + 9
+            # patch_head = patches.pop()
+            # self.bytes_out[patch_head + 1] = ((bytecnt_after_else >> 24) & 0xFF)
+            # self.bytes_out[patch_head + 2] = ((bytecnt_after_else >> 16) & 0xFF)
+            # self.bytes_out[patch_head + 3] = ((bytecnt_after_else >> 8) & 0xFF)
+            # self.bytes_out[patch_head + 4] = (bytecnt_after_else & 0xFF)
+
+            patches.append(len(self.bytes_out))
+
             self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
             for statement in node.elsenode:
                 self.visit(statement)
 
-            bytecnt_after_else = len(self.bytes_out)
-            self.bytes_out[bytecnt_before_else + 1] = ((bytecnt_after_else >> 24) & 0xFF)
-            self.bytes_out[bytecnt_before_else + 2] = ((bytecnt_after_else >> 16) & 0xFF)
-            self.bytes_out[bytecnt_before_else + 3] = ((bytecnt_after_else >> 8) & 0xFF)
-            self.bytes_out[bytecnt_before_else + 4] = (bytecnt_after_else & 0xFF)
+            endif = len(self.bytes_out)
+            #
+            patch_head = patches.pop()
+            self.bytes_out[patch_head + 1] = ((endif >> 24) & 0xFF)
+            self.bytes_out[patch_head + 2] = ((endif >> 16) & 0xFF)
+            self.bytes_out[patch_head + 3] = ((endif >> 8) & 0xFF)
+            self.bytes_out[patch_head + 4] = (endif & 0xFF)
 
-        # Patch dummy addresses 0xFFFFFFFF
-        self.bytes_out[bytecnt_before + 1] = ((bytecnt_after >> 24) & 0xFF)
-        self.bytes_out[bytecnt_before + 2] = ((bytecnt_after >> 16) & 0xFF)
-        self.bytes_out[bytecnt_before + 3] = ((bytecnt_after >> 8) & 0xFF)
-        self.bytes_out[bytecnt_before + 4] = (bytecnt_after & 0xFF)
+        bytecnt_after_all = len(self.bytes_out)
+        for p in range(len(patches)):
+            patch_head = patches.pop()
+            self.bytes_out[patch_head + 1] = ((bytecnt_after_all >> 24) & 0xFF)
+            self.bytes_out[patch_head + 2] = ((bytecnt_after_all >> 16) & 0xFF)
+            self.bytes_out[patch_head + 3] = ((bytecnt_after_all >> 8) & 0xFF)
+            self.bytes_out[patch_head + 4] = (bytecnt_after_all & 0xFF)
 
         self._close_scope()
 
     def visit_ExpressionNode(self, node: ExpressionNode, parent: Node = None):
         print("Expression node", node)
         if node.op == OpType.AND:
-            self.visit(node.left)   # res1
+            self.visit(node.left)  # res1
             self.visit(node.right)  # res2
             self._emit_operation(OP.AND)
             # return res1 and res2

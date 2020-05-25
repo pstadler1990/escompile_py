@@ -5,23 +5,26 @@ import subprocess
 if __name__ == '__main__':
     p = Parser()
     c = CodeGenerator()
-    # FIXME: Endet in 3 PUSHS und 2 CONCATS, aber: das erste CONCAT verbindet "World" + " " (die obersten beiden stack elemente)
-    # FIXME: und das zweite CONCAT verbindet dann "World " + "Hello" -> ergibt also "World Hello" statt "Hello World"
-    # HELLO
-    # _
-    # WORLD
-    # !
-    # CONCAT s-3 s-2 s-1
+
     statements = p.parse('''
-                        let a = 3
-                        let b = 4
-                        print("a + b = " + a + b)
+                        let a = 0
+                        if(a = 0) then
+                            print("a is 0")
+                        elseif(a = 1) then
+                            print("a is 1")
+                        elseif(a = 2) then
+                            print("a is 2")
+                        else
+                            print("else path")
+                        endif
+                        print("--- END ---")
                         '''
                          )
     for statement in statements:
         c.generate(statement)
 
-    # print(c.bytes_out)
+    print(c.bytes_out)
+    print(c.format())
     fbytes = c.finalize()
 
     # CALL vm.exe with bytes_out -b option
