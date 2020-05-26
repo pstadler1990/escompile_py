@@ -1,9 +1,9 @@
-import binascii
 import enum
 import struct
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
     CallNode
 from abc import ABC
+from termcolor import colored
 
 
 class OP(enum.Enum):
@@ -85,16 +85,17 @@ class CodeGenerator(NodeVisitor):
             out_stream.append(str(b))
         return out_stream
 
-    def _format_arg(self, bc):
-        a1 = self.bytes_out[bc + 1]
-        a2 = self.bytes_out[bc + 2]
-        a3 = self.bytes_out[bc + 3]
-        a4 = self.bytes_out[bc + 4]
-        a5 = self.bytes_out[bc + 5]
-        a6 = self.bytes_out[bc + 6]
-        a7 = self.bytes_out[bc + 7]
-        a8 = self.bytes_out[bc + 8]
-        bts = str(hex((
+    def _format_arg(self, bc, op: OP = None):
+        if op is not None and op.value in [OP.JMP.value, OP.JZ.value]:
+            a1 = self.bytes_out[bc + 1]
+            a2 = self.bytes_out[bc + 2]
+            a3 = self.bytes_out[bc + 3]
+            a4 = self.bytes_out[bc + 4]
+            a5 = self.bytes_out[bc + 5]
+            a6 = self.bytes_out[bc + 6]
+            a7 = self.bytes_out[bc + 7]
+            a8 = self.bytes_out[bc + 8]
+            bts = hex((
                     ((a1 & 0xFF) << 56) |
                     ((a2 & 0xFF) << 48) |
                     ((a3 & 0xFF) << 40) |
@@ -102,13 +103,31 @@ class CodeGenerator(NodeVisitor):
                     ((a5 & 0xFF) << 24) |
                     ((a6 & 0xFF) << 16) |
                     ((a7 & 0xFF) << 8) |
-                    (a8 & 0xFF))))[2:]
-        if len(bts) < 2:
-            return 0
-        try:
-            return struct.unpack('>d', binascii.unhexlify(bts.strip()))[0]
-        except struct.error:
-            return -1
+                    (a8 & 0xFF)))[2:]
+
+            if bts == '0' or len(bts) < 2:
+                return 0.0
+            b = bytearray.fromhex(bts)
+            r = struct.unpack('>d', b)[0]
+            return r
+        else:
+            a1 = self.bytes_out[bc + 1]
+            a2 = self.bytes_out[bc + 2]
+            a3 = self.bytes_out[bc + 3]
+            a4 = self.bytes_out[bc + 4]
+            bts = hex((
+                        ((a1 & 0xFF) << 24) |
+                        ((a2 & 0xFF) << 16) |
+                        ((a3 & 0xFF) << 8) |
+                        (a4 & 0xFF)))[2:]
+
+            if bts == '0' or len(bts) < 2:
+                return 0.0
+            b = bytearray.fromhex(bts)
+            while len(b) < 8:
+                b.append(0)
+            r = struct.unpack('>d', b)[0]
+            return r
 
     def format(self):
         lc: int = 0
@@ -128,7 +147,7 @@ class CodeGenerator(NodeVisitor):
                     print("{lc} @ {adr}\t\t{op}\t\"{str}\"".format(lc=lc, adr=bc, op=OP.value2member_map_[b], str=ostr))
                     bc += strlen + 9
                 else:
-                    arg1 = self._format_arg(bc)
+                    arg1 = self._format_arg(bc, op=OP.value2member_map_[b])
                     # arg2 = self._format_arg(bc + 9)
                     print("{lc} @ {adr}\t\t{op}\t\t{a1}".format(lc=lc, adr=bc, op=OP.value2member_map_[b], a1=arg1))
                     brem: int = 9
@@ -246,13 +265,33 @@ class CodeGenerator(NodeVisitor):
             self._emit_operation(OP.PUSHS, arg1=len(node.value), arg2=node.value)
         return node.value
 
+    def _backpatch(self, head_addr, patch_addr):
+        f = float(patch_addr)
+        s = bytearray(struct.pack('>d', f))
+        if len(s) > 8:
+            self._fail("Illegal number")
+        # for i, b in enumerate(s):
+        #     self.bytes_out[head_addr + 1 + i] = b
+        self.bytes_out[head_addr + 1] = s[0]
+        self.bytes_out[head_addr + 2] = s[1]
+        self.bytes_out[head_addr + 3] = s[2]
+        self.bytes_out[head_addr + 4] = s[3]
+        self.bytes_out[head_addr + 5] = s[4]
+        self.bytes_out[head_addr + 6] = s[5]
+        self.bytes_out[head_addr + 7] = s[6]
+        self.bytes_out[head_addr + 8] = s[7]
+        # self.bytes_out[head_addr + 1] = ((p >> 24) & 0xFF)
+        # self.bytes_out[head_addr + 2] = ((p >> 16) & 0xFF)
+        # self.bytes_out[head_addr + 3] = ((p >> 8) & 0xFF)
+        # self.bytes_out[head_addr + 4] = (p & 0xFF)
+        print(colored("Patched {h} with {p}".format(h=head_addr, p=patch_addr), "green"))
+
     def visit_IfNode(self, node: IfNode, parent: Node = None):
         print("If statement", node)
         patches = []
 
         self.visit(node.left)
 
-        # patch_head = len(self.bytes_out)
         patches.append(len(self.bytes_out))
 
         self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
@@ -261,23 +300,16 @@ class CodeGenerator(NodeVisitor):
         for statement in node.right:
             self.visit(statement)
 
-        # bytecnt_after = len(self.bytes_out)
-
         if node.elseifnodes:
             # 1. Patch root IF node to address of first elseif node
             bytecnt_before_elif = len(self.bytes_out)
-            # Patch dummy addresses 0xFFFFFFFF
             patch_head = patches.pop()
-            self.bytes_out[patch_head + 1] = ((bytecnt_before_elif >> 24) & 0xFF)
-            self.bytes_out[patch_head + 2] = ((bytecnt_before_elif >> 16) & 0xFF)
-            self.bytes_out[patch_head + 3] = ((bytecnt_before_elif >> 8) & 0xFF)
-            self.bytes_out[patch_head + 4] = (bytecnt_before_elif & 0xFF)
+            self._backpatch(patch_head, bytecnt_before_elif)
 
             for cnt, elifnode in enumerate(node.elseifnodes):
                 # Evalulate if(<expr>)
                 self.visit(elifnode.left)
 
-                # patch_head = len(self.bytes_out)
                 patches.append(len(self.bytes_out))
                 self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
 
@@ -290,23 +322,13 @@ class CodeGenerator(NodeVisitor):
                     bytecnt_after_elif = len(self.bytes_out)
 
                 patch_head = patches.pop()
-                self.bytes_out[patch_head + 1] = ((bytecnt_after_elif >> 24) & 0xFF)
-                self.bytes_out[patch_head + 2] = ((bytecnt_after_elif >> 16) & 0xFF)
-                self.bytes_out[patch_head + 3] = ((bytecnt_after_elif >> 8) & 0xFF)
-                self.bytes_out[patch_head + 4] = (bytecnt_after_elif & 0xFF)
+                self._backpatch(patch_head, bytecnt_after_elif)
 
                 self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
                 patches.append(len(self.bytes_out))
 
         if node.elsenode:
             # Patch previous IF / ELSEIF with ELSE + 1
-            bytecnt_after_else = len(self.bytes_out) + 9
-            # patch_head = patches.pop()
-            # self.bytes_out[patch_head + 1] = ((bytecnt_after_else >> 24) & 0xFF)
-            # self.bytes_out[patch_head + 2] = ((bytecnt_after_else >> 16) & 0xFF)
-            # self.bytes_out[patch_head + 3] = ((bytecnt_after_else >> 8) & 0xFF)
-            # self.bytes_out[patch_head + 4] = (bytecnt_after_else & 0xFF)
-
             patches.append(len(self.bytes_out))
 
             self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
@@ -314,20 +336,14 @@ class CodeGenerator(NodeVisitor):
                 self.visit(statement)
 
             endif = len(self.bytes_out)
-            #
+
             patch_head = patches.pop()
-            self.bytes_out[patch_head + 1] = ((endif >> 24) & 0xFF)
-            self.bytes_out[patch_head + 2] = ((endif >> 16) & 0xFF)
-            self.bytes_out[patch_head + 3] = ((endif >> 8) & 0xFF)
-            self.bytes_out[patch_head + 4] = (endif & 0xFF)
+            self._backpatch(patch_head, endif)
 
         bytecnt_after_all = len(self.bytes_out)
         for p in range(len(patches)):
             patch_head = patches.pop()
-            self.bytes_out[patch_head + 1] = ((bytecnt_after_all >> 24) & 0xFF)
-            self.bytes_out[patch_head + 2] = ((bytecnt_after_all >> 16) & 0xFF)
-            self.bytes_out[patch_head + 3] = ((bytecnt_after_all >> 8) & 0xFF)
-            self.bytes_out[patch_head + 4] = (bytecnt_after_all & 0xFF)
+            self._backpatch(patch_head, bytecnt_after_all)
 
         self._close_scope()
 
