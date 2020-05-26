@@ -144,6 +144,7 @@ class CodeGenerator(NodeVisitor):
                     while brem < strlen:
                         ostr += chr(self.bytes_out[bc + 9 + brem])
                         brem += 1
+
                     print("{lc} @ {adr}\t\t{op}\t\"{str}\"".format(lc=lc, adr=bc, op=OP.value2member_map_[b], str=ostr))
                     bc += strlen + 9
                 else:
@@ -270,30 +271,27 @@ class CodeGenerator(NodeVisitor):
         s = bytearray(struct.pack('>d', f))
         if len(s) > 8:
             self._fail("Illegal number")
-        # for i, b in enumerate(s):
-        #     self.bytes_out[head_addr + 1 + i] = b
-        self.bytes_out[head_addr + 1] = s[0]
-        self.bytes_out[head_addr + 2] = s[1]
-        self.bytes_out[head_addr + 3] = s[2]
-        self.bytes_out[head_addr + 4] = s[3]
-        self.bytes_out[head_addr + 5] = s[4]
-        self.bytes_out[head_addr + 6] = s[5]
-        self.bytes_out[head_addr + 7] = s[6]
-        self.bytes_out[head_addr + 8] = s[7]
-        # self.bytes_out[head_addr + 1] = ((p >> 24) & 0xFF)
-        # self.bytes_out[head_addr + 2] = ((p >> 16) & 0xFF)
-        # self.bytes_out[head_addr + 3] = ((p >> 8) & 0xFF)
-        # self.bytes_out[head_addr + 4] = (p & 0xFF)
-        print(colored("Patched {h} with {p}".format(h=head_addr, p=patch_addr), "green"))
+        try:
+            self.bytes_out[head_addr + 1] = s[0]
+            self.bytes_out[head_addr + 2] = s[1]
+            self.bytes_out[head_addr + 3] = s[2]
+            self.bytes_out[head_addr + 4] = s[3]
+            self.bytes_out[head_addr + 5] = s[4]
+            self.bytes_out[head_addr + 6] = s[5]
+            self.bytes_out[head_addr + 7] = s[6]
+            self.bytes_out[head_addr + 8] = s[7]
+            print(colored("Patched {h} with {p}".format(h=head_addr, p=patch_addr), "green"))
+        except IndexError:
+            print(colored("Cannot patch {h} with {p}".format(h=head_addr, p=patch_addr), "red"))
 
     def visit_IfNode(self, node: IfNode, parent: Node = None):
         print("If statement", node)
         patches = []
+        jz_last = None
 
         self.visit(node.left)
 
         patches.append(len(self.bytes_out))
-
         self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
         # If body
         self._open_scope()
@@ -302,43 +300,54 @@ class CodeGenerator(NodeVisitor):
 
         if node.elseifnodes:
             # 1. Patch root IF node to address of first elseif node
-            bytecnt_before_elif = len(self.bytes_out)
+            bytecnt_before_elif = len(self.bytes_out) + 9
             patch_head = patches.pop()
             self._backpatch(patch_head, bytecnt_before_elif)
+
+            patches.append(len(self.bytes_out))
+            self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
 
             for cnt, elifnode in enumerate(node.elseifnodes):
                 # Evalulate if(<expr>)
                 self.visit(elifnode.left)
 
                 patches.append(len(self.bytes_out))
+
+                if node.elsenode and cnt >= len(node.elseifnodes) - 1:
+                    jz_last = len(self.bytes_out)
+
                 self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
 
                 for statement in elifnode.right:
                     self.visit(statement)
 
-                if node.elsenode and (cnt >= len(node.elseifnodes) - 1):
-                    bytecnt_after_elif = len(self.bytes_out) + 9
-                else:
-                    bytecnt_after_elif = len(self.bytes_out)
+                bytecnt_after_elif = len(self.bytes_out) + 9
 
                 patch_head = patches.pop()
                 self._backpatch(patch_head, bytecnt_after_elif)
 
-                self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
                 patches.append(len(self.bytes_out))
+                self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
+
+                if node.elsenode and cnt >= len(node.elseifnodes) - 1:
+                    print(colored("last node before else", "blue"))
 
         if node.elsenode:
-            # Patch previous IF / ELSEIF with ELSE + 1
+            # # Patch previous IF / ELSEIF with ELSE + 1
+            # patch_head = patches.pop()
+            self._backpatch(jz_last, len(self.bytes_out) + 9)
+            #
             patches.append(len(self.bytes_out))
-
+            #
             self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
             for statement in node.elsenode:
                 self.visit(statement)
-
+            #
             endif = len(self.bytes_out)
-
+            #
             patch_head = patches.pop()
             self._backpatch(patch_head, endif)
+            pass
 
         bytecnt_after_all = len(self.bytes_out)
         for p in range(len(patches)):

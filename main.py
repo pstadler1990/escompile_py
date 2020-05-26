@@ -7,17 +7,19 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        let a = 0
+                        let a = 42
                         if(a = 0) then
                             print("a is 0")
                         elseif(a = 1) then
                             print("a is 1")
                         elseif(a = 2) then
                             print("a is 2")
+                        elseif(a = 42) then
+                            print("a is 42")
                         else
-                            print("else path")
+                            print("a is was andres")
                         endif
-                        print("--- END ---")
+                        print("--- END1 ---")
                         '''
                          )
     for statement in statements:
