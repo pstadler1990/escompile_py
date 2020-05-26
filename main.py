@@ -7,11 +7,15 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        let a = 42
+                        let a = 1
                         if(a = 0) then
                             print("a is 0")
+                            print("und blibblabblub")
                         elseif(a = 1) then
                             print("a is 1")
+                            let b = 22.55
+                            let c = b + 2.35678
+                            print("c is " + c)
                         elseif(a = 2) then
                             print("a is 2")
                         elseif(a = 42) then
