@@ -1,7 +1,7 @@
 import enum
 import struct
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
-    CallNode
+    CallNode, LoopNode
 from abc import ABC
 from termcolor import colored
 
@@ -182,8 +182,11 @@ class CodeGenerator(NodeVisitor):
 
     def _open_scope(self):
         if self.scope > 0:
-            for symbol in self.symbols.get(self.scope):
-                self._insert_symbol(symbol, scope=self.scope + 1)
+            try:
+                for symbol in self.symbols.get(self.scope):
+                    self._insert_symbol(symbol, scope=self.scope + 1)
+            except TypeError:
+                print(colored("Could not copy scope {s}".format(s=self.scope), "red"))
         self.scope += 1
 
     def _close_scope(self):
@@ -202,7 +205,7 @@ class CodeGenerator(NodeVisitor):
             print('Symbol {id} already found'.format(id=node.left.value))
         else:
             self._insert_symbol(symbol=IntegerSymbol(name=node.left.value, value=value), scope=self.scope)
-            print(self.symbols)
+            print(colored("SYMOBLS: ", "yellow"), self.symbols)
 
         _, varid, varscope = self._find_symbol(node.left.value, scope=self.scope)
 
@@ -230,15 +233,21 @@ class CodeGenerator(NodeVisitor):
         elif node.op == OpType.SUB:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            return res1 - res2
+            if isinstance(res1, float) and isinstance(res2, float):
+                self._emit_operation(OP.SUB)
+                return res1 - res2
         elif node.op == OpType.MUL:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            return res1 * res2
+            if isinstance(res1, float) and isinstance(res2, float):
+                self._emit_operation(OP.MUL)
+                return res1 * res2
         elif node.op == OpType.DIV:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            return res1 / res2
+            if isinstance(res1, float) and isinstance(res2, float):
+                self._emit_operation(OP.DIV)
+                return res1 / res2
 
     def visit_ValueNode(self, node: ValueNode, parent: Node = None):
         print("ValueNode", node, " with parent ", parent)
@@ -353,6 +362,27 @@ class CodeGenerator(NodeVisitor):
         for p in range(len(patches)):
             patch_head = patches.pop()
             self._backpatch(patch_head, bytecnt_after_all)
+
+        self._close_scope()
+
+    def visit_LoopNode(self, node: LoopNode, parent: Node = None):
+        print("loop node")
+        patches = []
+        self.visit(node.left)
+
+        loop_head = len(self.bytes_out)
+        patches.append(loop_head)
+        self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
+        # Loop body
+        self._open_scope()
+        for statement in node.right:
+            self.visit(statement)
+
+        self._emit_operation(OP.JMP, loop_head + 9)
+
+        patch_head = patches.pop()
+        bytecnt_after_all = len(self.bytes_out)
+        self._backpatch(patch_head, bytecnt_after_all)
 
         self._close_scope()
 

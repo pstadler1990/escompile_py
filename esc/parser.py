@@ -65,6 +65,10 @@ class CallNode(Unary):
         self.type = ''
 
 
+class LoopNode(Binary):
+    pass
+
+
 class TermNode(Binary):
     def __init__(self):
         super().__init__()
@@ -113,13 +117,21 @@ class Parser:
         statements = []
         t: TokenType = self._cur_token.ttype
 
-        while t in [TokenType.LET, TokenType.BLOCK_IF, TokenType.CALL_PRINT]:
+        while t in [TokenType.LET,
+                    TokenType.BLOCK_IF,
+                    TokenType.CALL_PRINT,
+                    TokenType.LOOP_REPEAT,
+                    TokenType.IDENTIFIER]:
             if t == TokenType.LET:
                 statements.append(self._parse_assignment())
             elif t == TokenType.BLOCK_IF:
                 statements.append(self._parse_if())
             elif t == TokenType.CALL_PRINT:
                 statements.append(self._parse_call(func='print'))
+            elif t == TokenType.LOOP_REPEAT:
+                statements.append(self._parse_loop())
+            elif t == TokenType.IDENTIFIER:
+                statements.append(self._parse_lmodify())
 
             if self._cur_token is not None:
                 t = self._cur_token.ttype
@@ -133,6 +145,14 @@ class Parser:
     def _parse_assignment(self) -> AssignmentNode:
         node = AssignmentNode()
         self._accept(TokenType.LET)
+        node.left = self._cur_token
+        self._accept(TokenType.IDENTIFIER)
+        self._accept(TokenType.EQUALS)
+        node.right = self._parse_expression()
+        return node
+
+    def _parse_lmodify(self) -> AssignmentNode:
+        node = AssignmentNode()
         node.left = self._cur_token
         self._accept(TokenType.IDENTIFIER)
         self._accept(TokenType.EQUALS)
@@ -182,6 +202,22 @@ class Parser:
             return node
         else:
             self._fail('Cannot call undefined function')
+
+    def _parse_loop(self) -> LoopNode:
+        node = LoopNode()
+        self._accept(TokenType.LOOP_REPEAT)
+        node.right = self._parse_statements()
+        # - Repeat Forever -> node.left condition is (1) or (1=1)
+        self._accept(TokenType.LOOP_FOREVER)
+        forever_cond = ExpressionNode()
+        v1 = ValueNode(value_type=ValueType.NUMBER)
+        v1.value = 1
+        forever_cond.left = v1
+        forever_cond.right = v1
+        forever_cond.op = OpType.EQUALS
+        node.left = forever_cond
+        # TODO: - Repeat Until <expr> -> node.left condition is <expr> (JZ like in IF statement)
+        return node
 
     def _parse_expression(self) -> ExpressionNode:
         node = ExpressionNode()

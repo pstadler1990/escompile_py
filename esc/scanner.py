@@ -1,4 +1,5 @@
 import enum
+from typing import Optional
 
 
 class TokenType(enum.Enum):
@@ -12,6 +13,7 @@ class TokenType(enum.Enum):
     MULTIPLY = 13
     DIVIDE = 14
     BANG = 15
+    MODULO = 16
 
     LPARENT = 20
     RPARENT = 21
@@ -81,7 +83,7 @@ class Scanner:
         self._char_offset = 0
         self._cur_char = self._str_stream[self._char_offset]
 
-    def next_token(self) -> Token:
+    def next_token(self) -> Optional[Token]:
         """
         Get next available token
         :return: Token instance
@@ -116,9 +118,12 @@ class Scanner:
                 self._advance()
                 return Token(TokenType.MULTIPLY)
 
+            if self._cur_char == '%':
+                self._advance()
+                return Token(TokenType.MODULO)
+
             if self._cur_char == '=':
                 self._advance()
-                # TODO: Peek next char to be another =  -> results in == (comparison operator)
                 return Token(TokenType.EQUALS)
 
             if self._cur_char.isdigit() or self._cur_char == '.':
