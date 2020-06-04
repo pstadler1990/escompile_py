@@ -8,6 +8,7 @@ class ValueType(enum.Enum):
     NUMBER = 1
     STRING = 2
     IDENTIFIER = 3
+    KEYWORD = 4
 
 
 class OpType(enum.Enum):
@@ -63,6 +64,11 @@ class CallNode(Unary):
     def __init__(self):
         super().__init__()
         self.type = ''
+
+
+class ExitNode(Unary):
+    def __init__(self):
+        super().__init__()
 
 
 class LoopNode(Binary):
@@ -121,7 +127,8 @@ class Parser:
                     TokenType.BLOCK_IF,
                     TokenType.CALL_PRINT,
                     TokenType.LOOP_REPEAT,
-                    TokenType.IDENTIFIER]:
+                    TokenType.IDENTIFIER,
+                    TokenType.LOOP_BREAK]:
             if t == TokenType.LET:
                 statements.append(self._parse_assignment())
             elif t == TokenType.BLOCK_IF:
@@ -130,6 +137,8 @@ class Parser:
                 statements.append(self._parse_call(func='print'))
             elif t == TokenType.LOOP_REPEAT:
                 statements.append(self._parse_loop())
+            elif t == TokenType.LOOP_BREAK:
+                statements.append(self._parse_exit())
             elif t == TokenType.IDENTIFIER:
                 statements.append(self._parse_lmodify())
 
@@ -217,6 +226,12 @@ class Parser:
         forever_cond.op = OpType.EQUALS
         node.left = forever_cond
         # TODO: - Repeat Until <expr> -> node.left condition is <expr> (JZ like in IF statement)
+        return node
+
+    def _parse_exit(self) -> ExitNode:
+        node = ExitNode()
+        node.value = ValueNode(value_type=ValueType.KEYWORD)
+        self._accept(TokenType.LOOP_BREAK)
         return node
 
     def _parse_expression(self) -> ExpressionNode:

@@ -207,11 +207,11 @@ class Scanner:
                 return Token(TokenType.BLOCK_THEN)
             elif tmp_str == 'else':
                 return Token(TokenType.BLOCK_ELSE)
+            elif tmp_str == 'exit':
+                return Token(TokenType.LOOP_BREAK)
         elif slen == 5:
             if tmp_str == 'endif':
                 return Token(TokenType.BLOCK_ENDIF)
-            elif tmp_str == 'break':
-                return Token(TokenType.LOOP_BREAK)
             elif tmp_str == 'print':
                 return Token(TokenType.CALL_PRINT)
         elif slen == 6:

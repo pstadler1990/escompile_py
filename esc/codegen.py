@@ -1,7 +1,7 @@
 import enum
 import struct
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
-    CallNode, LoopNode
+    CallNode, LoopNode, ExitNode
 from abc import ABC
 from termcolor import colored
 
@@ -74,6 +74,7 @@ class CodeGenerator(NodeVisitor):
         self.bytes_out = []
         self.scope = 0
         self.concat_mode = 0
+        self.loop_patches = []
 
     def generate(self, root: Node):
         return self.visit(root)
@@ -384,6 +385,10 @@ class CodeGenerator(NodeVisitor):
         bytecnt_after_all = len(self.bytes_out)
         self._backpatch(patch_head, bytecnt_after_all)
 
+        # Backpatch exits (breaks)
+        while self.loop_patches:
+            self._backpatch(self.loop_patches.pop(), bytecnt_after_all)
+
         self._close_scope()
 
     def visit_ExpressionNode(self, node: ExpressionNode, parent: Node = None):
@@ -408,6 +413,12 @@ class CodeGenerator(NodeVisitor):
             # CALL __print
             self._emit_operation(OP.PRINT)
             pass
+
+    def visit_ExitNode(self, node: ExitNode, parent: Node = None):
+        print("exit node", node, parent)
+        self.loop_patches.append(len(self.bytes_out))
+        self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
+        # TODO: Backpatch JMP later (at forever / loop end) to address of loop end
 
     def _fail(self, msg: str = ''):
         raise Exception(msg)
