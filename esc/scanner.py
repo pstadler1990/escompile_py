@@ -35,6 +35,7 @@ class TokenType(enum.Enum):
     LOOP_REPEAT = 50
     LOOP_FOREVER = 51
     LOOP_BREAK = 52
+    LOOP_UNTIL = 53
 
     LOG_NOT = 60
     LOG_AND = 61
@@ -126,6 +127,30 @@ class Scanner:
                 self._advance()
                 return Token(TokenType.EQUALS)
 
+            if self._cur_char == '!':
+                self._advance()
+                if self._peek() == '=':
+                    self._advance()
+                    return Token(TokenType.REL_NOTEQ)
+                else:
+                    raise ScanWrongTokenException('Invalid conditional operator')
+
+            if self._cur_char == '<':
+                self._advance()
+                if self._peek() == '=':
+                    self._advance()
+                    return Token(TokenType.REL_LTEQ)
+                else:
+                    return Token(TokenType.REL_LT)
+
+            if self._cur_char == '>':
+                self._advance()
+                if self._peek() == '=':
+                    self._advance()
+                    return Token(TokenType.REL_GTEQ)
+                else:
+                    return Token(TokenType.REL_GT)
+
             if self._cur_char.isdigit() or self._cur_char == '.':
                 return Token(TokenType.NUMBER, self._scan_number())
 
@@ -145,6 +170,12 @@ class Scanner:
             self._cur_char = self._str_stream[self._char_offset]
         else:
             self._scan_complete()
+
+    def _peek(self) -> Optional[str]:
+        if self._char_offset < self._str_len:
+            return self._str_stream[self._char_offset]
+        else:
+            return None
 
     def _scan_complete(self) -> None:
         self._cur_char = None
@@ -202,6 +233,8 @@ class Scanner:
                 return Token(TokenType.LET)
             elif tmp_str == 'and':
                 return Token(TokenType.LOG_AND)
+            elif tmp_str == 'mod':
+                return Token(TokenType.MODULO)
         elif slen == 4:
             if tmp_str == 'then':
                 return Token(TokenType.BLOCK_THEN)
@@ -214,6 +247,8 @@ class Scanner:
                 return Token(TokenType.BLOCK_ENDIF)
             elif tmp_str == 'print':
                 return Token(TokenType.CALL_PRINT)
+            elif tmp_str == 'until':
+                return Token(TokenType.LOOP_UNTIL)
         elif slen == 6:
             if tmp_str == 'repeat':
                 return Token(TokenType.LOOP_REPEAT)

@@ -17,9 +17,16 @@ class OpType(enum.Enum):
     SUB = 2
     MUL = 3
     DIV = 4
+    MOD = 5
 
     EQUALS = 10
-    AND = 11
+    NOTEQUALS = 11
+    AND = 12
+    OR = 13
+    LT = 14
+    LTEQ = 15
+    GT = 16
+    GTEQ = 17
 
 
 class Node(abc.ABC):
@@ -216,15 +223,23 @@ class Parser:
         node = LoopNode()
         self._accept(TokenType.LOOP_REPEAT)
         node.right = self._parse_statements()
-        # - Repeat Forever -> node.left condition is (1) or (1=1)
-        self._accept(TokenType.LOOP_FOREVER)
-        forever_cond = ExpressionNode()
-        v1 = ValueNode(value_type=ValueType.NUMBER)
-        v1.value = 1
-        forever_cond.left = v1
-        forever_cond.right = v1
-        forever_cond.op = OpType.EQUALS
-        node.left = forever_cond
+
+        if self._cur_token.ttype == TokenType.LOOP_FOREVER:
+            # Repeat Forever -> node.left condition is (1) or (1=1)
+            self._accept(TokenType.LOOP_FOREVER)
+            forever_cond = ExpressionNode()
+            v1 = ValueNode(value_type=ValueType.NUMBER)
+            v1.value = 1
+            forever_cond.left = v1
+            forever_cond.right = v1
+            forever_cond.op = OpType.EQUALS
+            node.left = forever_cond
+
+        elif self._cur_token.ttype == TokenType.LOOP_UNTIL:
+            # Repeat Until <expr> -> node.left condition is <expr>
+            self._accept(TokenType.LOOP_UNTIL)
+            node.left = self._parse_expression()
+
         # TODO: - Repeat Until <expr> -> node.left condition is <expr> (JZ like in IF statement)
         return node
 
@@ -278,10 +293,20 @@ class Parser:
         t = self._cur_token_type()
         while t in [TokenType.EQUALS, TokenType.REL_NOTEQ, TokenType.REL_GT, TokenType.REL_GTEQ, TokenType.REL_LT, TokenType.REL_LTEQ]:
             self._accept(t)
-            # node.op = t
+
             if t == TokenType.EQUALS:
                 node.op = OpType.EQUALS
-            # TODO: Add other types
+            elif t == TokenType.REL_NOTEQ:
+                node.op = OpType.NOTEQUALS
+            elif t == TokenType.REL_GT:
+                node.op = OpType.GT
+            elif t == TokenType.REL_GTEQ:
+                node.op = OpType.GTEQ
+            elif t == TokenType.REL_LT:
+                node.op = OpType.LT
+            elif t == TokenType.LTEQ:
+                node.op = OpType.LTEQ
+
             node.left = node_tmp
             node.right = self._parse_compareexpr()
             return node
@@ -289,7 +314,8 @@ class Parser:
 
     def _parse_addexpr(self) -> Union[TermNode, ExpressionNode, ValueNode]:
         node = TermNode()
-        node_tmp = self._parse_multexpr()
+        # node_tmp = self._parse_multexpr()
+        node_tmp = self._parse_modexpr()
 
         t = self._cur_token_type()
         while t == TokenType.PLUS or t == TokenType.MINUS:
@@ -300,6 +326,19 @@ class Parser:
                 node.op = OpType.SUB
             node.left = node_tmp
             node.right = self._parse_addexpr()
+            return node
+        return node_tmp
+
+    def _parse_modexpr(self) -> Union[TermNode, ExpressionNode, ValueNode]:
+        node = TermNode()
+        node_tmp = self._parse_multexpr()
+
+        t = self._cur_token_type()
+        while t == TokenType.MODULO:
+            self._accept(t)
+            node.op = OpType.MOD
+            node.left = node_tmp
+            node.right = self._parse_modexpr()
             return node
         return node_tmp
 

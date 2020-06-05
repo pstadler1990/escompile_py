@@ -21,6 +21,7 @@ class OP(enum.Enum):
     GT = 0x22
     LTEQ = 0x23
     GTEQ = 0x24
+    NOTEQ = 0x25
 
     ADD = 0x30
     SUB = 0x32
@@ -230,7 +231,6 @@ class CodeGenerator(NodeVisitor):
                 # Mixed string addition (concatenate)
                 # TODO: We need to determine, which concat param is pushed first (OP_CONCAT_LEFT | RIGHT)
                 self._emit_operation(OP.CONCAT, arg1=self.concat_mode)
-
         elif node.op == OpType.SUB:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
@@ -249,6 +249,12 @@ class CodeGenerator(NodeVisitor):
             if isinstance(res1, float) and isinstance(res2, float):
                 self._emit_operation(OP.DIV)
                 return res1 / res2
+        elif node.op == OpType.MOD:
+            res1 = self.visit(node.left, node)
+            res2 = self.visit(node.right, node)
+            if isinstance(res1, float) and isinstance(res2, float):
+                self._emit_operation(OP.MOD)
+                return res1 % res2
 
     def visit_ValueNode(self, node: ValueNode, parent: Node = None):
         print("ValueNode", node, " with parent ", parent)
@@ -320,44 +326,34 @@ class CodeGenerator(NodeVisitor):
             for cnt, elifnode in enumerate(node.elseifnodes):
                 # Evalulate if(<expr>)
                 self.visit(elifnode.left)
-
                 patches.append(len(self.bytes_out))
 
                 if node.elsenode and cnt >= len(node.elseifnodes) - 1:
                     jz_last = len(self.bytes_out)
 
                 self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
-
                 for statement in elifnode.right:
                     self.visit(statement)
 
                 bytecnt_after_elif = len(self.bytes_out) + 9
-
                 patch_head = patches.pop()
                 self._backpatch(patch_head, bytecnt_after_elif)
 
                 patches.append(len(self.bytes_out))
                 self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
-
                 if node.elsenode and cnt >= len(node.elseifnodes) - 1:
                     print(colored("last node before else", "blue"))
 
         if node.elsenode:
-            # # Patch previous IF / ELSEIF with ELSE + 1
-            # patch_head = patches.pop()
+            # Patch previous IF / ELSEIF with ELSE + 1
             self._backpatch(jz_last, len(self.bytes_out) + 9)
-            #
             patches.append(len(self.bytes_out))
-            #
             self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
             for statement in node.elsenode:
                 self.visit(statement)
-            #
             endif = len(self.bytes_out)
-            #
             patch_head = patches.pop()
             self._backpatch(patch_head, endif)
-            pass
 
         bytecnt_after_all = len(self.bytes_out)
         for p in range(len(patches)):
@@ -393,16 +389,25 @@ class CodeGenerator(NodeVisitor):
 
     def visit_ExpressionNode(self, node: ExpressionNode, parent: Node = None):
         print("Expression node", node)
+        self.visit(node.left)
+        self.visit(node.right)
+
         if node.op == OpType.AND:
-            self.visit(node.left)  # res1
-            self.visit(node.right)  # res2
             self._emit_operation(OP.AND)
-            # return res1 and res2
         elif node.op == OpType.EQUALS:
-            self.visit(node.left)
-            self.visit(node.right)
             self._emit_operation(OP.EQ)
-        # TODO: Add other types (OR, LT, GT, LTE, GTE)
+        elif node.op == OpType.NOTEQUALS:
+            self._emit_operation(OP.NOTEQ)
+        elif node.op == OpType.OR:
+            self._emit_operation(OP.OR)
+        elif node.op == OpType.LT:
+            self._emit_operation(OP.LT)
+        elif node.op == OpType.LTEQ:
+            self._emit_operation(OP.LTEQ)
+        elif node.op == OpType.GT:
+            self._emit_operation(OP.GT)
+        elif node.op == OpType.GTEQ:
+            self._emit_operation(OP.GTEQ)
 
     def visit_CallNode(self, node: CallNode, parent: Node = None):
         print("Call node", node)
@@ -418,7 +423,7 @@ class CodeGenerator(NodeVisitor):
         print("exit node", node, parent)
         self.loop_patches.append(len(self.bytes_out))
         self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
-        # TODO: Backpatch JMP later (at forever / loop end) to address of loop end
+        # Backpatched later (at forever / loop end) to address of loop end
 
     def _fail(self, msg: str = ''):
         raise Exception(msg)
