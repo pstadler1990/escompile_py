@@ -8,25 +8,23 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        let a = 0
+                        let i = 1
                         repeat
-                            a = a + 1
-                            print("a is: " + a)
-                            if(a = 400) then
-                                print("YEAH YEAH YEAH!!!!")
-                                let b = 10
-                                repeat
-                                    print("inner b: " + b)
-                                    b = b + 1
-                                    if(b = 50) then
-                                        print("EXIT b")
-                                        exit
-                                    endif
-                                forever
+                            if(i mod 3 = 0 and i mod 5 = 0) then
+                                print("FizzBuzz")
+                            elseif(i mod 3 = 0) then
+                                print("Fizz")
+                            elseif(i mod 5 = 0) then
+                                print("Buzz")
+                            else
+                                print("" + i)
+                            endif
+                            
+                            if(i >= 100) then
                                 exit
                             endif
+                            i = i + 1
                         forever
-                        print("end of inner loops")
                         '''
                          )
     for statement in statements:

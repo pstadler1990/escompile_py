@@ -44,3 +44,68 @@ repeat
     print("a is: " + a)
 forever
 ```
+
+#### Nested loops
+Inner loop (a) counts to 5 while outer loop (a) counts to 10
+Results in a total amount of 50 inner loop iterations.
+```
+let a = 0
+repeat
+    a = a + 1
+    let b = 0
+    print("outer loop a: " + a)
+    repeat
+        b = b + 1
+        print("-> inner loop b: " + b)
+        if(b = 5) then
+            exit
+        endif
+    forever
+    if(a = 10) then
+        exit
+    endif
+forever
+```
+
+#### FizzBuzz
+https://en.wikipedia.org/wiki/Fizz_buzz
+```
+let i = 1
+repeat
+    if(i mod 3 = 0 and i mod 5 = 0) then
+        print("FizzBuzz")
+    elseif(i mod 3 = 0) then
+        print("Fizz")
+    elseif(i mod 5 = 0) then
+        print("Buzz")
+    else
+        print("" + i)
+    endif
+    
+    if(i >= 100) then
+        exit
+    endif
+    i = i + 1
+forever
+```
+
+Outputs the famous FizzBuzz pattern:
+```
+1.000000
+2.000000
+Fizz
+4.000000
+Buzz
+Fizz
+7.000000
+8.000000
+Fizz
+Buzz
+11.000000
+Fizz
+13.000000
+14.000000
+FizzBuzz
+16.000000
+...
+```
