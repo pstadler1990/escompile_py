@@ -83,6 +83,12 @@ class ExitNode(Unary):
         super().__init__()
 
 
+class ArrayNode(Unary):
+    def __init__(self):
+        super().__init__()
+        self.values = []
+
+
 class LoopNode(Binary):
     def __init__(self):
         super().__init__()
@@ -171,7 +177,15 @@ class Parser:
         node.left = self._cur_token
         self._accept(TokenType.IDENTIFIER)
         self._accept(TokenType.EQUALS)
-        node.right = self._parse_expression()
+
+        if self._cur_token.ttype == TokenType.LSQBRACKET:
+            # let my_var = [1, 2, 3]
+            # TODO: Array initialization
+            node.right = self._parse_array()
+        else:
+            # let my_var = (3 + 42)
+            node.right = self._parse_expression()
+
         return node
 
     def _parse_lmodify(self) -> AssignmentNode:
@@ -252,6 +266,23 @@ class Parser:
         node = ExitNode()
         node.value = ValueNode(value_type=ValueType.KEYWORD)
         self._accept(TokenType.LOOP_BREAK)
+        return node
+
+    def _parse_array(self) -> ArrayNode:
+        node = ArrayNode()
+
+        self._accept(TokenType.LSQBRACKET)
+
+        t = self._cur_token_type()
+        while t not in [TokenType.RSQBRACKET]:
+            if t == TokenType.COMMA:
+                self._accept(TokenType.COMMA)
+            else:
+                tmp_node = self._parse_expression()
+                node.values.append(tmp_node)
+            t = self._cur_token_type()
+
+        self._accept(TokenType.RSQBRACKET)
         return node
 
     def _parse_expression(self) -> ExpressionNode:

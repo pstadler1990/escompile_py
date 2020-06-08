@@ -8,7 +8,9 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        let i = [1, 2, 3]
+                        let a = 42 * 2
+                        let b = a / 3.14
+                        let i = [1 + 1, 3, a, b]
                         '''
                          )
     for statement in statements:

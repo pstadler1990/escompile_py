@@ -31,6 +31,9 @@ class TokenType(enum.Enum):
     BLOCK_ENDIF = 34
 
     LET = 40
+    LSQBRACKET = 41
+    RSQBRACKET = 42
+    COMMA = 43
 
     LOOP_REPEAT = 50
     LOOP_FOREVER = 51
@@ -134,6 +137,18 @@ class Scanner:
                     return Token(TokenType.REL_NOTEQ)
                 else:
                     raise ScanWrongTokenException('Invalid conditional operator')
+
+            if self._cur_char == '[':
+                self._advance()
+                return Token(TokenType.LSQBRACKET)
+
+            if self._cur_char == ']':
+                self._advance()
+                return Token(TokenType.RSQBRACKET)
+
+            if self._cur_char == ',':
+                self._advance()
+                return Token(TokenType.COMMA)
 
             if self._cur_char == '<':
                 self._advance()

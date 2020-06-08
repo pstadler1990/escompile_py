@@ -1,7 +1,7 @@
 import enum
 import struct
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
-    CallNode, LoopNode, ExitNode, ConditionPos
+    CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode
 from abc import ABC
 from termcolor import colored
 
@@ -15,6 +15,7 @@ class OP(enum.Enum):
     PUSH = 0x14
     POP = 0x15
     PUSHS = 0x16
+    DATA = 0x17
 
     EQ = 0x20
     LT = 0x21
@@ -85,6 +86,8 @@ class CodeGenerator(NodeVisitor):
         out_stream = []
         for b in self.bytes_out:
             out_stream.append(str(b))
+
+        print(colored("OUT BYTES: ", "blue"), len(out_stream))
         return out_stream
 
     def _format_arg(self, bc, op: OP = None):
@@ -439,6 +442,12 @@ class CodeGenerator(NodeVisitor):
         self.loop_patches.append(len(self.bytes_out))
         self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
         # Backpatched later (at forever / loop end) to address of loop end
+
+    def visit_ArrayNode(self, node: ArrayNode, parent: Node = None):
+        print("Array node with {e} entries".format(e=len(node.values)))
+        for v in node.values:
+            self.visit(v)
+        self._emit_operation(OP.DATA, arg1=len(node.values))
 
     def _fail(self, msg: str = ''):
         raise Exception(msg)
