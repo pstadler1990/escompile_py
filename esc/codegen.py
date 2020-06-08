@@ -1,7 +1,7 @@
 import enum
 import struct
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
-    CallNode, LoopNode, ExitNode
+    CallNode, LoopNode, ExitNode, ConditionPos
 from abc import ABC
 from termcolor import colored
 
@@ -365,21 +365,36 @@ class CodeGenerator(NodeVisitor):
     def visit_LoopNode(self, node: LoopNode, parent: Node = None):
         print("loop node")
         patches = []
-        self.visit(node.left)
 
-        loop_head = len(self.bytes_out)
-        patches.append(loop_head)
-        self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
-        # Loop body
-        self._open_scope()
-        for statement in node.right:
-            self.visit(statement)
+        if node.condition_pos.value == ConditionPos.TOP:
+            self.visit(node.left)
 
-        self._emit_operation(OP.JMP, loop_head + 9)
+            loop_head = len(self.bytes_out)
+            patches.append(loop_head)
+            self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
 
-        patch_head = patches.pop()
-        bytecnt_after_all = len(self.bytes_out)
-        self._backpatch(patch_head, bytecnt_after_all)
+            # Loop body
+            self._open_scope()
+            for statement in node.right:
+                self.visit(statement)
+
+            self._emit_operation(OP.JMP, loop_head + 9)
+
+            patch_head = patches.pop()
+            bytecnt_after_all = len(self.bytes_out)
+            self._backpatch(patch_head, bytecnt_after_all)
+        else:
+            self._open_scope()
+
+            loop_head = len(self.bytes_out)
+
+            for statement in node.right:
+                self.visit(statement)
+
+            self.visit(node.left)
+            self._emit_operation(OP.JZ, arg1=loop_head)
+
+            bytecnt_after_all = len(self.bytes_out)
 
         # Backpatch exits (breaks)
         while self.loop_patches:

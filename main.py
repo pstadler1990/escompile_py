@@ -8,23 +8,15 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        let i = 1
+                        let i = 0
                         repeat
-                            if(i mod 3 = 0 and i mod 5 = 0) then
-                                print("FizzBuzz")
-                            elseif(i mod 3 = 0) then
-                                print("Fizz")
-                            elseif(i mod 5 = 0) then
-                                print("Buzz")
-                            else
-                                print("" + i)
-                            endif
-                            
-                            if(i >= 100) then
+                            print("i: " + i)
+                            if(i = 300) then
                                 exit
                             endif
                             i = i + 1
-                        forever
+                        until i = 200
+                        print("---- END ----")
                         '''
                          )
     for statement in statements:

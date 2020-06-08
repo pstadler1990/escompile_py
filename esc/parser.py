@@ -29,6 +29,11 @@ class OpType(enum.Enum):
     GTEQ = 17
 
 
+class ConditionPos(enum.Enum):
+    TOP = 0
+    BOTTOM = 1
+
+
 class Node(abc.ABC):
     pass
 
@@ -79,7 +84,9 @@ class ExitNode(Unary):
 
 
 class LoopNode(Binary):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.condition_pos = ConditionPos.TOP
 
 
 class TermNode(Binary):
@@ -232,15 +239,13 @@ class Parser:
             v1.value = 1
             forever_cond.left = v1
             forever_cond.right = v1
-            forever_cond.op = OpType.EQUALS
+            forever_cond.op = OpType.NOTEQUALS
             node.left = forever_cond
-
         elif self._cur_token.ttype == TokenType.LOOP_UNTIL:
             # Repeat Until <expr> -> node.left condition is <expr>
             self._accept(TokenType.LOOP_UNTIL)
             node.left = self._parse_expression()
-
-        # TODO: - Repeat Until <expr> -> node.left condition is <expr> (JZ like in IF statement)
+            node.condition_pos = ConditionPos.BOTTOM
         return node
 
     def _parse_exit(self) -> ExitNode:
