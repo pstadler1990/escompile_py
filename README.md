@@ -7,6 +7,42 @@ Small compiler for the ``evoscript`` language (es).
 - string concatenation is buggy, because of the way it's using the stack. Building 
 a string from more than two substrings / literals could end up in a shifted / reversed string.
 
+## Keyword reference
+`let` defines a variable with a given name and value.
+```
+let my_var = 42
+```
+
+`if` / `elseif` / `else` / `endif` allows structuring the control flow of the program.
+```
+...
+if(my_var = 42) then
+    ...
+elseif(my_var = 69) then
+    ...
+else
+    ...
+endif
+```
+
+`repeat` .. `until` / `repeat` .. `forever` are used to create loops. 
+```
+let i = 1
+repeat
+    i = i + 1
+    print("i: " + i)
+until i = 10
+```
+
+`repeat` .. `until` creates infinite loops.
+```
+repeat
+    print("This will be printed forever")
+forever
+```
+
+You can use the `exit` keyword to break from loop. This also works in nested loops.
+
 ### Examples
 #### Number swapping (w/ temporary variable)
 ```

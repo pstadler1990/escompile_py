@@ -8,15 +8,7 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        let i = 0
-                        repeat
-                            print("i: " + i)
-                            if(i = 300) then
-                                exit
-                            endif
-                            i = i + 1
-                        until i = 200
-                        print("---- END ----")
+                        let i = [1, 2, 3]
                         '''
                          )
     for statement in statements:
