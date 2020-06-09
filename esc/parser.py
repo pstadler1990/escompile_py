@@ -9,6 +9,7 @@ class ValueType(enum.Enum):
     STRING = 2
     IDENTIFIER = 3
     KEYWORD = 4
+    ARRAYELEMENT = 5
 
 
 class OpType(enum.Enum):
@@ -105,6 +106,7 @@ class ValueNode(Unary):
     def __init__(self, value_type: ValueType):
         super().__init__()
         self.value_type = value_type
+        self.identifier = None
 
 
 class ParseSyntaxException(Exception):
@@ -432,6 +434,13 @@ class Parser:
             node = ValueNode(ValueType.IDENTIFIER)
             node.value = self._cur_token.value
             self._accept(TokenType.IDENTIFIER)
+            if self._cur_token.ttype == TokenType.LSQBRACKET:
+                # Access array at given index, i.e. my_var[0]
+                self._accept(TokenType.LSQBRACKET)
+                node.value_type = ValueType.ARRAYELEMENT
+                node.identifier = node.value
+                node.value = self._parse_expression()
+                self._accept(TokenType.RSQBRACKET)
             return node
         else:
             self._fail('Invalid value for token')

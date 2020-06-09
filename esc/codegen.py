@@ -16,6 +16,7 @@ class OP(enum.Enum):
     POP = 0x15
     PUSHS = 0x16
     DATA = 0x17
+    PUSHA = 0x18
 
     EQ = 0x20
     LT = 0x21
@@ -283,6 +284,17 @@ class CodeGenerator(NodeVisitor):
         elif node.value_type == ValueType.STRING:
             # PUSHS string
             self._emit_operation(OP.PUSHS, arg1=len(node.value), arg2=node.value)
+        elif node.value_type == ValueType.ARRAYELEMENT:
+            self.visit(node.value)
+            try:
+                tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.identifier, self.scope)
+                if tmp_scope == 0:
+                    self._emit_operation(OP.POPG, arg1=tmp_index)
+                else:
+                    self._emit_operation(OP.POPL, arg1=tmp_index)
+            except AttributeError:
+                self._fail('Unknown symbol {id}'.format(id=node.value))
+            self._emit_operation(OP.PUSHA)
         return node.value
 
     def _backpatch(self, head_addr, patch_addr):
