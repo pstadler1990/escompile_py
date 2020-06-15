@@ -51,9 +51,10 @@ class TokenType(enum.Enum):
 
 
 class Token(object):
-    def __init__(self, ttype: TokenType, value=None):
+    def __init__(self, ttype: TokenType, cn: int, value=None):
         self.ttype = ttype
         self.value = value
+        self.meta_cn = cn    # Character number (for better error printing)
 
     def __str__(self):
         return 'Token of type {t} with value {v}'.format(t=self.ttype, v=self.value)
@@ -100,79 +101,79 @@ class Scanner:
 
             if self._cur_char == '(':
                 self._advance()
-                return Token(TokenType.LPARENT)
+                return Token(TokenType.LPARENT, cn=self._char_offset)
 
             if self._cur_char == ')':
                 self._advance()
-                return Token(TokenType.RPARENT)
+                return Token(TokenType.RPARENT, cn=self._char_offset)
 
             if self._cur_char == '+':
                 self._advance()
-                return Token(TokenType.PLUS)
+                return Token(TokenType.PLUS, cn=self._char_offset)
 
             if self._cur_char == '-':
                 self._advance()
-                return Token(TokenType.MINUS)
+                return Token(TokenType.MINUS, cn=self._char_offset)
 
             if self._cur_char == '/':
                 self._advance()
-                return Token(TokenType.DIVIDE)
+                return Token(TokenType.DIVIDE, cn=self._char_offset)
 
             if self._cur_char == '*':
                 self._advance()
-                return Token(TokenType.MULTIPLY)
+                return Token(TokenType.MULTIPLY, cn=self._char_offset)
 
             if self._cur_char == '%':
                 self._advance()
-                return Token(TokenType.MODULO)
+                return Token(TokenType.MODULO, cn=self._char_offset)
 
             if self._cur_char == '=':
                 self._advance()
-                return Token(TokenType.EQUALS)
+                return Token(TokenType.EQUALS, cn=self._char_offset)
 
             if self._cur_char == '!':
                 self._advance()
                 if self._peek() == '=':
                     self._advance()
-                    return Token(TokenType.REL_NOTEQ)
+                    return Token(TokenType.REL_NOTEQ, cn=self._char_offset)
                 else:
                     raise ScanWrongTokenException('Invalid conditional operator')
 
             if self._cur_char == '[':
                 self._advance()
-                return Token(TokenType.LSQBRACKET)
+                return Token(TokenType.LSQBRACKET, cn=self._char_offset)
 
             if self._cur_char == ']':
                 self._advance()
-                return Token(TokenType.RSQBRACKET)
+                return Token(TokenType.RSQBRACKET, cn=self._char_offset)
 
             if self._cur_char == ',':
                 self._advance()
-                return Token(TokenType.COMMA)
+                return Token(TokenType.COMMA, cn=self._char_offset)
 
             if self._cur_char == '<':
                 self._advance()
                 if self._peek() == '=':
                     self._advance()
-                    return Token(TokenType.REL_LTEQ)
+                    return Token(TokenType.REL_LTEQ, cn=self._char_offset)
                 else:
-                    return Token(TokenType.REL_LT)
+                    return Token(TokenType.REL_LT, cn=self._char_offset)
 
             if self._cur_char == '>':
                 self._advance()
                 if self._peek() == '=':
                     self._advance()
-                    return Token(TokenType.REL_GTEQ)
+                    return Token(TokenType.REL_GTEQ, cn=self._char_offset)
                 else:
-                    return Token(TokenType.REL_GT)
+                    return Token(TokenType.REL_GT, cn=self._char_offset)
 
             if self._cur_char.isdigit() or self._cur_char == '.':
-                return Token(TokenType.NUMBER, self._scan_number())
+                return Token(TokenType.NUMBER, cn=self._char_offset, value=self._scan_number())
 
             if self._cur_char == '\"':
                 if self._opening_str:
                     raise ScanWrongTokenException('Missing closing quotes')
-                return Token(TokenType.STRING, self._scan_string())
+                return Token(TokenType.STRING, cn=self._char_offset, value=self._scan_string())
 
             if self._cur_char.isalpha() or self._cur_char == '_':
                 return self._scan_identifier_or_keyword()
@@ -242,35 +243,39 @@ class Scanner:
         slen = len(tmp_str)
         if slen == 2:
             if tmp_str == 'if':
-                return Token(TokenType.BLOCK_IF)
+                return Token(TokenType.BLOCK_IF, cn=self._char_offset)
         elif slen == 3:
             if tmp_str == 'let':
-                return Token(TokenType.LET)
+                return Token(TokenType.LET, cn=self._char_offset)
             elif tmp_str == 'and':
-                return Token(TokenType.LOG_AND)
+                return Token(TokenType.LOG_AND, cn=self._char_offset)
             elif tmp_str == 'mod':
-                return Token(TokenType.MODULO)
+                return Token(TokenType.MODULO, cn=self._char_offset)
         elif slen == 4:
             if tmp_str == 'then':
-                return Token(TokenType.BLOCK_THEN)
+                return Token(TokenType.BLOCK_THEN, cn=self._char_offset)
             elif tmp_str == 'else':
-                return Token(TokenType.BLOCK_ELSE)
+                return Token(TokenType.BLOCK_ELSE, cn=self._char_offset)
             elif tmp_str == 'exit':
-                return Token(TokenType.LOOP_BREAK)
+                return Token(TokenType.LOOP_BREAK, cn=self._char_offset)
         elif slen == 5:
             if tmp_str == 'endif':
-                return Token(TokenType.BLOCK_ENDIF)
+                return Token(TokenType.BLOCK_ENDIF, cn=self._char_offset)
             elif tmp_str == 'print':
-                return Token(TokenType.CALL_PRINT)
+                return Token(TokenType.CALL_PRINT, cn=self._char_offset)
             elif tmp_str == 'until':
-                return Token(TokenType.LOOP_UNTIL)
+                return Token(TokenType.LOOP_UNTIL, cn=self._char_offset)
         elif slen == 6:
             if tmp_str == 'repeat':
-                return Token(TokenType.LOOP_REPEAT)
+                return Token(TokenType.LOOP_REPEAT, cn=self._char_offset)
             elif tmp_str == 'elseif':
-                return Token(TokenType.BLOCK_ELSEIF)
+                return Token(TokenType.BLOCK_ELSEIF, cn=self._char_offset)
         elif slen == 7:
             if tmp_str == 'forever':
-                return Token(TokenType.LOOP_FOREVER)
+                return Token(TokenType.LOOP_FOREVER, cn=self._char_offset)
 
-        return Token(TokenType.IDENTIFIER, tmp_str)
+        return Token(TokenType.IDENTIFIER, cn=self._char_offset, value=tmp_str)
+
+    @property
+    def char_offset(self):
+        return self._char_offset

@@ -107,6 +107,7 @@ class ValueNode(Unary):
         super().__init__()
         self.value_type = value_type
         self.identifier = None
+        self.index = None
 
 
 class ParseSyntaxException(Exception):
@@ -117,23 +118,40 @@ class Parser:
     def __init__(self):
         self._scanner = Scanner()
         self._cur_token = None
+        self._prev_token = None
         self._statements: [StatementNode] = []
 
+    def _next_token(self):
+        if self._cur_token is not None:
+            self._prev_token = self._cur_token
+        return self._scanner.next_token()
+
     def parse(self, input_str: str) -> [StatementNode]:
-        self._scanner.scan_str(input_str)
-        self._cur_token: Token = self._scanner.next_token()
+        # Parse given input string
+        # We perform some string cleaning and whitespace removing before actually passing the raw string to the scanner
+        lines = list(filter(lambda e: len(e), [ln.lstrip() for ln in input_str.splitlines()]))
+        for ln, _ in enumerate(lines):
+            lines[ln] = ''.join(lines[ln])
+        clean_str: str = '\n'.join(lines)
+
+        self._scanner.scan_str(clean_str)
+        self._cur_token: Token = self._next_token()
         self._statements: [StatementNode] = []
         return self._parse_statements()
 
     def _accept(self, ttype: TokenType):
         if self._cur_token is not None:
             if self._cur_token.ttype == ttype:
-                self._cur_token = self._scanner.next_token()
+                self._cur_token = self._next_token()
             else:
                 self._fail()
 
     def _fail(self, msg: str = ''):
-        raise ParseSyntaxException(msg)
+        try:
+            char_offset = self._cur_token.meta_cn
+        except AttributeError:
+            char_offset = self._scanner.char_offset
+        raise ParseSyntaxException('PARSER ERROR,{msg},{cn}'.format(msg=msg, cn=char_offset))
 
     def _cur_token_type(self):
         if self._cur_token is not None:
@@ -182,7 +200,6 @@ class Parser:
 
         if self._cur_token.ttype == TokenType.LSQBRACKET:
             # let my_var = [1, 2, 3]
-            # TODO: Array initialization
             node.right = self._parse_array()
         else:
             # let my_var = (3 + 42)
@@ -192,8 +209,7 @@ class Parser:
 
     def _parse_lmodify(self) -> AssignmentNode:
         node = AssignmentNode()
-        node.left = self._cur_token
-        self._accept(TokenType.IDENTIFIER)
+        node.left = self._parse_value()
         self._accept(TokenType.EQUALS)
         node.right = self._parse_expression()
         return node
@@ -247,21 +263,24 @@ class Parser:
         self._accept(TokenType.LOOP_REPEAT)
         node.right = self._parse_statements()
 
-        if self._cur_token.ttype == TokenType.LOOP_FOREVER:
-            # Repeat Forever -> node.left condition is (1) or (1=1)
-            self._accept(TokenType.LOOP_FOREVER)
-            forever_cond = ExpressionNode()
-            v1 = ValueNode(value_type=ValueType.NUMBER)
-            v1.value = 1
-            forever_cond.left = v1
-            forever_cond.right = v1
-            forever_cond.op = OpType.NOTEQUALS
-            node.left = forever_cond
-        elif self._cur_token.ttype == TokenType.LOOP_UNTIL:
-            # Repeat Until <expr> -> node.left condition is <expr>
-            self._accept(TokenType.LOOP_UNTIL)
-            node.left = self._parse_expression()
-            node.condition_pos = ConditionPos.BOTTOM
+        try:
+            if self._cur_token.ttype == TokenType.LOOP_FOREVER:
+                # Repeat Forever -> node.left condition is (1) or (1=1)
+                self._accept(TokenType.LOOP_FOREVER)
+                forever_cond = ExpressionNode()
+                v1 = ValueNode(value_type=ValueType.NUMBER)
+                v1.value = 1
+                forever_cond.left = v1
+                forever_cond.right = v1
+                forever_cond.op = OpType.NOTEQUALS
+                node.left = forever_cond
+            elif self._cur_token.ttype == TokenType.LOOP_UNTIL:
+                # Repeat Until <expr> -> node.left condition is <expr>
+                self._accept(TokenType.LOOP_UNTIL)
+                node.left = self._parse_expression()
+                node.condition_pos = ConditionPos.BOTTOM
+        except AttributeError:
+            self._fail('Missing loop body')
         return node
 
     def _parse_exit(self) -> ExitNode:
@@ -342,7 +361,7 @@ class Parser:
                 node.op = OpType.GTEQ
             elif t == TokenType.REL_LT:
                 node.op = OpType.LT
-            elif t == TokenType.LTEQ:
+            elif t == TokenType.REL_LTEQ:
                 node.op = OpType.LTEQ
 
             node.left = node_tmp
@@ -434,13 +453,16 @@ class Parser:
             node = ValueNode(ValueType.IDENTIFIER)
             node.value = self._cur_token.value
             self._accept(TokenType.IDENTIFIER)
-            if self._cur_token.ttype == TokenType.LSQBRACKET:
-                # Access array at given index, i.e. my_var[0]
-                self._accept(TokenType.LSQBRACKET)
-                node.value_type = ValueType.ARRAYELEMENT
-                node.identifier = node.value
-                node.value = self._parse_expression()
-                self._accept(TokenType.RSQBRACKET)
+            try:
+                if self._cur_token.ttype == TokenType.LSQBRACKET:
+                    # Access array at given index, i.e. my_var[0]
+                    self._accept(TokenType.LSQBRACKET)
+                    node.value_type = ValueType.ARRAYELEMENT
+                    node.identifier = node.value
+                    node.index = self._parse_expression()
+                    self._accept(TokenType.RSQBRACKET)
+            except AttributeError:
+                pass
             return node
         else:
             self._fail('Invalid value for token')

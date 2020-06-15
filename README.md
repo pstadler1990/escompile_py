@@ -13,6 +13,7 @@ a string from more than two substrings / literals could end up in a shifted / re
 let my_var = 42
 ```
 
+#### Program flow
 `if` / `elseif` / `else` / `endif` allows structuring the control flow of the program.
 ```
 ...
@@ -33,15 +34,17 @@ repeat
     print("i: " + i)
 until i = 10
 ```
-
 `repeat` .. `until` creates infinite loops.
 ```
 repeat
     print("This will be printed forever")
 forever
 ```
-
 You can use the `exit` keyword to break from loop. This also works in nested loops.
+
+#### Arrays
+`let my_arr = [1, 2, 2+1, 42.69]` defines an array with 4 elements (last index is 3!). To access an array's specific index,
+use `my_var[<index>]`.
 
 ### Examples
 #### Number swapping (w/ temporary variable)
@@ -144,4 +147,21 @@ Fizz
 FizzBuzz
 16.000000
 ...
+```
+
+#### Iterating over an array
+```
+let i = [1, 1+1, 3, 42.69]
+let j = 0
+repeat
+    print("i: " + i[j])
+    j = j + 1
+until j = 4
+```
+produces
+```
+i: 1.000000
+i: 2.000000
+i: 3.000000
+i: 42.690000
 ```

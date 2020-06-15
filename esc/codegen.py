@@ -203,8 +203,19 @@ class CodeGenerator(NodeVisitor):
         # PUSH <expr> (number|string)
         # PUSHG|PUSHL [index]
         print('Assign identifier {id}'.format(id=node.left.value))
-        # TODO: Scopes? Lookup?
         value = self.visit(node.right, node)
+
+        try:
+            if node.left.value_type == ValueType.ARRAYELEMENT:
+                self.visit(node.left)
+        except AttributeError:
+            pass
+
+        try:
+            if node.left.value_type == ValueType.ARRAYELEMENT:
+                return
+        except AttributeError:
+            pass
 
         # Insert into symbol table
         if self._symbol_exists(node.left.value):  # self._find_symbol(node.left.value):
@@ -285,7 +296,7 @@ class CodeGenerator(NodeVisitor):
             # PUSHS string
             self._emit_operation(OP.PUSHS, arg1=len(node.value), arg2=node.value)
         elif node.value_type == ValueType.ARRAYELEMENT:
-            self.visit(node.value)
+            self.visit(node.index)
             try:
                 tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.identifier, self.scope)
                 if tmp_scope == 0:
@@ -462,7 +473,7 @@ class CodeGenerator(NodeVisitor):
         self._emit_operation(OP.DATA, arg1=len(node.values))
 
     def _fail(self, msg: str = ''):
-        raise Exception(msg)
+        raise Exception('COMPILER ERROR,{msg}'.format(msg=msg))
 
     def _emit_operation(self, op: OP, arg1=None, arg2=None):
         # [1 Byte OP][4 Byte arg1][4 Byte arg2]

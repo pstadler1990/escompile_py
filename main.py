@@ -3,13 +3,24 @@ import subprocess
 from esc.codegen import CodeGenerator
 from esc.parser import Parser
 
+# TODO: If release
+# import sys
+# sys.tracebacklimit = 0
+
 if __name__ == '__main__':
     p = Parser()
     c = CodeGenerator()
 
     statements = p.parse('''
-                        let i = [1, 1+1, 3, 42.69]
-                        print("i[0]: " + i[3])
+                        let my_var = 3 * 3
+                        repeat
+                            print("m: " + my_var)
+                            my_var = my_var / 3
+                            if(my_var <= 0) then
+                                exit
+                            endif
+                        forever
+                        print(" end of loop ") 
                         '''
                          )
     for statement in statements:
