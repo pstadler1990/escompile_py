@@ -165,7 +165,10 @@ class CodeGenerator(NodeVisitor):
                 lc += 1
 
     def _symbol_exists(self, symbol: str, scope: int = 0):
-        return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)), None) is not None
+        try:
+            return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)), None) is not None
+        except TypeError:
+            return False
 
     def _find_symbol(self, symbol: str, scope: int = 0):
         # if symbol not found in current scope: change scope to 0 and try again
@@ -218,7 +221,7 @@ class CodeGenerator(NodeVisitor):
             pass
 
         # Insert into symbol table
-        if self._symbol_exists(node.left.value):  # self._find_symbol(node.left.value):
+        if self._symbol_exists(node.left.value, self.scope):  # self._find_symbol(node.left.value):
             print('Symbol {id} already found'.format(id=node.left.value))
         else:
             self._insert_symbol(symbol=IntegerSymbol(name=node.left.value, value=value), scope=self.scope)
@@ -305,7 +308,8 @@ class CodeGenerator(NodeVisitor):
                     self._emit_operation(OP.POPL, arg1=tmp_index)
             except AttributeError:
                 self._fail('Unknown symbol {id}'.format(id=node.value))
-            self._emit_operation(OP.PUSHA)
+            # self._emit_operation(OP.PUSHA)
+            return node.index.value
         return node.value
 
     def _backpatch(self, head_addr, patch_addr):
