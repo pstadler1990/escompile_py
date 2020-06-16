@@ -12,13 +12,14 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        let a = [42, 69]
-                        if(1) then
-                            let a = [1, 2, 3]
-                            let b = a[1] * 3.14
-                            print("b: " + b)
-                        endif
-                        print("a: " + a[1])
+                        let a = [1, 2, 3]
+                        print("a before: " + a[0])
+                        a[0] = 123
+                        print("a: " + a[0])
+                        let b = 42
+                        print("b: " + b)
+                        b = b * 2
+                        print("b after: " + b)
                         '''
                          )
     for statement in statements:
