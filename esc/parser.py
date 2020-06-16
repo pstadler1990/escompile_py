@@ -63,7 +63,9 @@ class ExpressionNode(Binary):
 
 
 class AssignmentNode(Binary):
-    pass
+    def __init__(self, modify: bool = False):
+        super().__init__()
+        self.modify = modify
 
 
 class IfNode(Binary):
@@ -208,7 +210,7 @@ class Parser:
         return node
 
     def _parse_lmodify(self) -> AssignmentNode:
-        node = AssignmentNode()
+        node = AssignmentNode(modify=True)
         node.left = self._parse_value()
         self._accept(TokenType.EQUALS)
         node.right = self._parse_expression()

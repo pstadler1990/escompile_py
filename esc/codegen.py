@@ -167,7 +167,10 @@ class CodeGenerator(NodeVisitor):
         try:
             return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)), None) is not None
         except TypeError:
-            return False
+            if scope != 0:
+                return self._symbol_exists(symbol, scope=0)
+            else:
+                return False
 
     def _find_symbol(self, symbol: str, scope: int = 0):
         # if symbol not found in current scope: change scope to 0 and try again
@@ -220,8 +223,9 @@ class CodeGenerator(NodeVisitor):
             pass
 
         # Insert into symbol table
-        if self._symbol_exists(node.left.value, self.scope):  # self._find_symbol(node.left.value):
-            print('Symbol {id} already found'.format(id=node.left.value))
+        if node.modify:
+            if not self._symbol_exists(node.left.value, self.scope):
+                self._fail("Symbol {s} not found".format(s=node.left.value))
         else:
             self._insert_symbol(symbol=IntegerSymbol(name=node.left.value, value=value), scope=self.scope)
             print(colored("SYMOBLS: ", "yellow"), self.symbols)
