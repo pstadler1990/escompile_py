@@ -4,8 +4,44 @@
 Small compiler for the ``evoscript`` language (es).
 
 ## Known limitations and bugs
-- string concatenation is buggy, because of the way it's using the stack. Building 
+- string concatenation is currently buggy, due to the way it's using the stack. Building 
 a string from more than two substrings / literals could end up in a shifted / reversed string.
+
+## Description
+`escompile` is a tool for lexical analysis, parsing and code generation for the `evoscript` language. 
+It's grammar and syntax is mostly based on a modern dialect of the `BASIC` programming language - some
+programs may also be compatible. 
+
+## Script file input
+TBD
+
+## Code generation
+This tool compiles to byte code for a custom virtual machine running on the desired embedded devices.
+
+Currently, each operation (except for the ones creating and dealing with `strings`) is **9 bytes** wide.
+
+```
+[1 BYTE OP code] [4 BYTES (u32) arg1] [4 BYTES (u32)]
+```
+
+OP = Operation code,
+
+arg1 = operation payload (MSB if arg2),
+ 
+arg2 = operation payload (LSB if arg1)
+
+However, some commands need more than 4 bytes for their argument, so arg1 and arg2 are combined.
+
+```
+[1 BYTE OP code] [8 BYTES (u32) arg1]
+```
+
+As every number is represented as `double` type, all operations dealing with plain numbers are using the above 
+binary format.
+
+## Byte compression
+TBD
+
 
 ## Keyword reference
 `let` defines a variable with a given name and value.
@@ -164,4 +200,18 @@ i: 1.000000
 i: 2.000000
 i: 3.000000
 i: 42.690000
+```
+
+### Was andres
+```
+let a = 42
+if(a = 42) then
+    print("eins")
+elseif(a = 43) then
+    print("zwei")
+elseif(a = 44) then
+    print("drei")
+else
+    print("was andres")
+endif
 ```

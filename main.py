@@ -12,15 +12,7 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        let my_var = 3 * 3
-                        repeat
-                            print("m: " + my_var)
-                            my_var = my_var / 3
-                            if(my_var <= 0) then
-                                exit
-                            endif
-                        forever
-                        print(" end of loop ") 
+                        
                         '''
                          )
     for statement in statements:
