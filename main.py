@@ -12,16 +12,16 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        sub my_sub(a)
-                            print("a: " + 1)
-                            print("a2: " + 1)
+                        sub my_sub(a, b)
+                            print("Called sub with a: " + a)
+                            print("b: " + b)
                         endsub
                         print("before sub")
-                        my_sub(1)
+                        my_sub(1, 2)
                         print("after sub")
                         let a = 32
                         print("now im after the a assignment")
-                        my_sub(42)
+                        my_sub(42, 69)
                         print("THIS IS THE END!")
                         '''
                          )

@@ -1,6 +1,6 @@
 import enum
 import struct
-from typing import Union, Any
+from typing import Union, Any, Optional
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
     CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode
 from abc import ABC
@@ -86,6 +86,7 @@ class CodeGenerator(NodeVisitor):
         self.scope = 0
         self.concat_mode = 0
         self.loop_patches = []
+        self.proc_scope = 100
 
     def generate(self, root: Node):
         return self.visit(root)
@@ -214,6 +215,11 @@ class CodeGenerator(NodeVisitor):
     def _close_scope(self):
         self.scope = max(0, self.scope - 1)
 
+    def _open_proc_scope(self):
+        r = self.proc_scope
+        self.proc_scope += 1
+        return r
+
     def visit_AssignmentNode(self, node: AssignmentNode, parent: Node = None):
         # LET IDENTIFIER = <expr>
         # PUSH <expr> (number|string)
@@ -296,7 +302,7 @@ class CodeGenerator(NodeVisitor):
         # if a + 2 = 3
         if node.value_type == ValueType.IDENTIFIER:
             try:
-                tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.value, self.scope)
+                tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.value, stype=VariableSymbol, scope=self.scope)
                 if tmp_scope == 0:
                     self._emit_operation(OP.POPG, arg1=tmp_index)
                 else:
@@ -528,10 +534,13 @@ class CodeGenerator(NodeVisitor):
             self._insert_symbol(symbol=ProcedureSymbol(name=node.left.value, args=len(node.args), addr=len(self.bytes_out)),
                                 scope=0)
 
-            self._open_scope()
+            # self._open_scope()
+            prev_scope = self.scope
+            proc_scope = self._open_proc_scope()
+            self.scope = proc_scope
             # Pop required values from stack (depending of number of arguments specified!)
-            # for a, arg in enumerate(node.args):
-            # self._insert_symbol(VariableSymbol(name=arg.value, value=a), scope=self.scope)
+            for a, arg in enumerate(node.args):
+                self._insert_symbol(VariableSymbol(name=arg.value, value=a), scope=proc_scope)
             # self._emit_operation(OP.POPL, arg1=a)
 
             for statement in node.right:
@@ -547,7 +556,8 @@ class CodeGenerator(NodeVisitor):
 
             self._backpatch(proc_head, len(self.bytes_out))
 
-            self._close_scope()
+            self.scope = prev_scope
+            # self._close_scope()
 
     def _fail(self, msg: str = ''):
         raise Exception('COMPILER ERROR,{msg}'.format(msg=msg))
