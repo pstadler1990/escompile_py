@@ -4,22 +4,15 @@ from esc.codegen import CodeGenerator
 from esc.parser import Parser
 
 # TODO: If release
-# import sys
-# sys.tracebacklimit = 0
+import sys
+sys.tracebacklimit = 0
 
 if __name__ == '__main__':
     p = Parser()
     c = CodeGenerator()
 
     statements = p.parse('''
-                        let a = 56
-                        if(a = 4) then
-                            print("ok")
-                        elseif(a = 5) then
-                            print("5")
-                        else
-                            print("not ok")
-                        endif
+                        
                         '''
                          )
     for statement in statements:

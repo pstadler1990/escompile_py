@@ -427,10 +427,10 @@ class CodeGenerator(NodeVisitor):
                 self._backpatch(patch_head, endif)
 
         # TODO: Watch, if these changes will work for every case!
-        # bytecnt_after_all = len(self.bytes_out)
-        # for p in range(len(patches)):
-        #     patch_head = patches.pop()
-        #     self._backpatch(patch_head, bytecnt_after_all)
+        bytecnt_after_all = len(self.bytes_out)
+        for p in range(len(patches)):
+            patch_head = patches.pop()
+            self._backpatch(patch_head, bytecnt_after_all)
 
         self._close_scope()
 

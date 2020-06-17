@@ -296,3 +296,55 @@ Now jump into the procedure
 2.000000
 1.000000
 ```
+
+#### Recursion
+```
+sub r(tmp)
+    print("r: " + tmp)
+    if(tmp < 10) then
+        r(tmp + 1)
+    endif
+endsub
+    
+r(1)
+print("end of file")
+```
+
+produces: 
+
+```
+r: 1.000000
+r: 2.000000
+r: 3.000000
+r: 4.000000
+r: 5.000000
+r: 6.000000
+r: 7.000000
+r: 8.000000
+r: 9.000000
+r: 10.000000
+end of file
+```
+
+Print a string `str` `n` times:
+
+```
+sub my_print(str, n)
+    if(n > 1) then
+        my_print(str, n - 1)
+    endif
+    print(str)
+endsub
+
+my_print("Hello", 5)
+```
+
+prints:
+
+```
+Hello
+Hello
+Hello
+Hello
+Hello
+```
