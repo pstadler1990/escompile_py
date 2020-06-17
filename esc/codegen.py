@@ -1,6 +1,5 @@
 import enum
 import struct
-from typing import Union, Any, Optional
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
     CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode
 from abc import ABC
@@ -258,8 +257,9 @@ class CodeGenerator(NodeVisitor):
         if node.op == OpType.ADD:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            if isinstance(res1, float) and isinstance(res2, float):
-                # Constant addition
+
+            if (isinstance(res1, float) or isinstance(res1, int)) and (isinstance(res2, float) or isinstance(res2, int)):
+                # Number addition
                 # FIXME: Instead of the two PUSHes of res1 and res2 and the ADD instr,
                 # FIXME: we should only PUSH the result of the addition
                 self._emit_operation(OP.ADD)
@@ -271,25 +271,25 @@ class CodeGenerator(NodeVisitor):
         elif node.op == OpType.SUB:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            if isinstance(res1, float) and isinstance(res2, float):
+            if (isinstance(res1, float) or isinstance(res1, int)) and (isinstance(res2, float) or isinstance(res2, int)):
                 self._emit_operation(OP.SUB)
                 return res1 - res2
         elif node.op == OpType.MUL:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            if isinstance(res1, float) and isinstance(res2, float):
+            if (isinstance(res1, float) or isinstance(res1, int)) and (isinstance(res2, float) or isinstance(res2, int)):
                 self._emit_operation(OP.MUL)
                 return res1 * res2
         elif node.op == OpType.DIV:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            if isinstance(res1, float) and isinstance(res2, float):
+            if (isinstance(res1, float) or isinstance(res1, int)) and (isinstance(res2, float) or isinstance(res2, int)):
                 self._emit_operation(OP.DIV)
                 return res1 / res2
         elif node.op == OpType.MOD:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            if isinstance(res1, float) and isinstance(res2, float):
+            if (isinstance(res1, float) or isinstance(res1, int)) and (isinstance(res2, float) or isinstance(res2, int)):
                 self._emit_operation(OP.MOD)
                 return res1 % res2
 
@@ -401,21 +401,36 @@ class CodeGenerator(NodeVisitor):
                 # if node.elsenode and cnt >= len(node.elseifnodes) - 1:
                 #     print(colored("last node before else", "blue"))
 
-        if node.elsenode:
-            # Patch previous IF / ELSEIF with ELSE + 1
-            self._backpatch(jz_last, len(self.bytes_out) + 9)
-            patches.append(len(self.bytes_out))
-            self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
-            for statement in node.elsenode:
-                self.visit(statement)
-            endif = len(self.bytes_out)
-            patch_head = patches.pop()
-            self._backpatch(patch_head, endif)
+            if node.elsenode:
+                # Patch previous IF / ELSEIF with ELSE + 1
+                self._backpatch(jz_last, len(self.bytes_out) + 9)
+                patches.append(len(self.bytes_out))
+                self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
+                for statement in node.elsenode:
+                    self.visit(statement)
+                endif = len(self.bytes_out)
+                patch_head = patches.pop()
+                self._backpatch(patch_head, endif)
 
-        bytecnt_after_all = len(self.bytes_out)
-        for p in range(len(patches)):
-            patch_head = patches.pop()
-            self._backpatch(patch_head, bytecnt_after_all)
+        else:
+            if node.elsenode:
+                bytecnt_after_else = len(self.bytes_out) + 9
+                patch_head = patches.pop()
+                self._backpatch(patch_head, bytecnt_after_else)
+
+                patches.append(len(self.bytes_out))
+                self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
+                for statement in node.elsenode:
+                    self.visit(statement)
+                endif = len(self.bytes_out)
+                patch_head = patches.pop()
+                self._backpatch(patch_head, endif)
+
+        # TODO: Watch, if these changes will work for every case!
+        # bytecnt_after_all = len(self.bytes_out)
+        # for p in range(len(patches)):
+        #     patch_head = patches.pop()
+        #     self._backpatch(patch_head, bytecnt_after_all)
 
         self._close_scope()
 
@@ -487,10 +502,7 @@ class CodeGenerator(NodeVisitor):
             # CALL __print
             self._emit_operation(OP.PRINT)
         else:
-            # node.type.value = name of sub
-            # TODO: find ProcedureSymbol node.type.value (to get address, TBD!)
             proc = self._find_symbol(node.type.value.lower(), stype=ProcedureSymbol, scope=0)[0]
-            # TODO: PUSHL each argument from args[]
 
             if proc.args != len(node.args):
                 self._fail('Insufficient amount of arguments for procedure {p} - required {n}, given {g}'.format(
@@ -507,7 +519,7 @@ class CodeGenerator(NodeVisitor):
             # Push own return address onto stack
             self._emit_operation(OP.PUSH, len(self.bytes_out) + 18) # 18 = 9 (this operation) + 9 (next jmp) bytes!
 
-            # TODO: emit JMP to address of sub
+            # JMP to address of sub
             self._emit_operation(OP.JMP, arg1=proc.addr)
 
     def visit_ExitNode(self, node: ExitNode, parent: Node = None):
@@ -526,7 +538,6 @@ class CodeGenerator(NodeVisitor):
         # node.args = argument name(s)
         if not self._symbol_exists(node.left.value, stype=ProcedureSymbol, scope=0):
             proc_head = len(self.bytes_out)
-            # TODO: ProcedureSymbols need: Address of procedure in byte memory, arguments -> drop value arg!
             # self.visit(node.right) -> will generate executable byte code wherever the procedure was declared!
             # Guard the procedure block with a JMP statement at the beginning and patch it to the end of the sub
             self._emit_operation(OP.JMP, arg1=0xFFFFFF)
@@ -534,30 +545,25 @@ class CodeGenerator(NodeVisitor):
             self._insert_symbol(symbol=ProcedureSymbol(name=node.left.value, args=len(node.args), addr=len(self.bytes_out)),
                                 scope=0)
 
-            # self._open_scope()
             prev_scope = self.scope
             proc_scope = self._open_proc_scope()
             self.scope = proc_scope
             # Pop required values from stack (depending of number of arguments specified!)
             for a, arg in enumerate(node.args):
+                # If we call the sub later, we push(l) the given arguments into the new (local) scope!
+                # i.e.  my_sub(1, 2, 3) will PUSHL 1 [0], PUSHL 2 [1] and PUSHL 3 [2]
+                # Then the procudure will POPL these args again to be used within the sub
                 self._insert_symbol(VariableSymbol(name=arg.value, value=a), scope=proc_scope)
-            # self._emit_operation(OP.POPL, arg1=a)
 
             for statement in node.right:
                 self.visit(statement)
 
-            # TODO: If we call the sub later, we push(l) the given arguments into the new (local) scope!
-            # i.e.  my_sub(1, 2, 3) will PUSHL 1 [0], PUSHL 2 [1] and PUSHL 3 [2]
-            # Then the procudure will POPL these args again to be used within the sub
-
             # TODO: If a return keyword is given, jmp back to the stored return adress (must've been placed on stack before!!)
-            # TODO: OP code JFS (jump from stack), takes a value from the stack and uses it as jump address
+
+            # OP code JFS (jump from stack), takes a value from the stack and uses it as jump address
             self._emit_operation(OP.JFS)
-
             self._backpatch(proc_head, len(self.bytes_out))
-
             self.scope = prev_scope
-            # self._close_scope()
 
     def _fail(self, msg: str = ''):
         raise Exception('COMPILER ERROR,{msg}'.format(msg=msg))

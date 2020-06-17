@@ -4,25 +4,22 @@ from esc.codegen import CodeGenerator
 from esc.parser import Parser
 
 # TODO: If release
-import sys
-sys.tracebacklimit = 0
+# import sys
+# sys.tracebacklimit = 0
 
 if __name__ == '__main__':
     p = Parser()
     c = CodeGenerator()
 
     statements = p.parse('''
-                        sub my_sub(a, b)
-                            print("Called sub with a: " + a)
-                            print("b: " + b)
-                        endsub
-                        print("before sub")
-                        my_sub(1, 2)
-                        print("after sub")
-                        let a = 32
-                        print("now im after the a assignment")
-                        my_sub(42, 69)
-                        print("THIS IS THE END!")
+                        let a = 56
+                        if(a = 4) then
+                            print("ok")
+                        elseif(a = 5) then
+                            print("5")
+                        else
+                            print("not ok")
+                        endif
                         '''
                          )
     for statement in statements:

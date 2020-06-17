@@ -97,6 +97,29 @@ outputs:
 Hello
 ```
 
+## Procedures
+Procedures are subroutines without any returned value (in contrast to functions). 
+
+You can define a procedure anywhere in the code, it will be guarded automatically by the compiler.
+Use the `sub` and `endsub` keywords to define a procedure.
+
+```
+sub my_sub
+ ...
+endsub
+```
+
+You can define procedures to take `n` arguments, if you don't specify any arguments, then the 
+parentheses after the procedure's name are optional.
+
+```
+sub my_sub(a, b)
+ ... do something with a and b
+endsub
+```
+
+Calling a subroutine (procedure) is done by using the procedures name followed by parantheses, i.e. `my_sub()` or `my_sub(42)`.
+
 ### Examples
 #### Number swapping (w/ temporary variable)
 ```
@@ -236,16 +259,40 @@ i after: 2.000000
 i after: 3.000000
 ```
 
-### Was andres
+#### If, elseif, else
 ```
 let a = 42
 if(a = 42) then
-    print("eins")
+    print("a is 42")
 elseif(a = 43) then
-    print("zwei")
+    print("a is 43")
 elseif(a = 44) then
-    print("drei")
+    print("a is 44")
 else
-    print("was andres")
+    print("a is something else")
 endif
+```
+
+#### Procedures
+```
+sub count_to_zero(param)
+    repeat
+        print("" + param)
+        param = param - 1
+    until param = 0
+endsub
+
+print("Now jump into the procedure")
+count_to_zero(5)
+```
+
+produces:
+
+```
+Now jump into the procedure
+5.000000
+4.000000
+3.000000
+2.000000
+1.000000
 ```

@@ -130,6 +130,7 @@ class Parser:
         self._cur_token = None
         self._prev_token = None
         self._statements: [StatementNode] = []
+        self._loops = 0
 
     def _next_token(self, peek: bool = False):
         if self._cur_token is not None:
@@ -279,6 +280,7 @@ class Parser:
 
     def _parse_loop(self) -> LoopNode:
         node = LoopNode()
+        self._loops += 1
         self._accept(TokenType.LOOP_REPEAT)
         node.right = self._parse_statements()
 
@@ -300,9 +302,13 @@ class Parser:
                 node.condition_pos = ConditionPos.BOTTOM
         except AttributeError:
             self._fail('Missing loop body')
+
+        self._loops -= 1
         return node
 
     def _parse_exit(self) -> ExitNode:
+        if self._loops <= 0:
+            self._fail('Exit without loop')
         node = ExitNode()
         node.value = ValueNode(value_type=ValueType.KEYWORD)
         self._accept(TokenType.LOOP_BREAK)
