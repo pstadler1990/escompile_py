@@ -1,7 +1,8 @@
 import enum
 import struct
+from typing import Union, Any
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
-    CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode
+    CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode
 from abc import ABC
 from termcolor import colored
 
@@ -36,6 +37,7 @@ class OP(enum.Enum):
 
     JZ = 0x40
     JMP = 0x41
+    JFS = 0x42
 
     PRINT = 0x50
 
@@ -52,10 +54,17 @@ class Symbol(ABC):
         return '[SYMBOL {name}]'.format(name=self.name)
 
 
-class IntegerSymbol(Symbol):
-    def __init__(self, name: str, value: int):
+class VariableSymbol(Symbol):
+    def __init__(self, name: str, value):
         super().__init__(name)
         self.value = value
+
+
+class ProcedureSymbol(Symbol):
+    def __init__(self, name: str, args: int, addr: int):
+        super().__init__(name)
+        self.args = args
+        self.addr = addr
 
 
 class NodeVisitor:
@@ -121,10 +130,10 @@ class CodeGenerator(NodeVisitor):
             a3 = self.bytes_out[bc + 3]
             a4 = self.bytes_out[bc + 4]
             bts = hex((
-                        ((a1 & 0xFF) << 24) |
-                        ((a2 & 0xFF) << 16) |
-                        ((a3 & 0xFF) << 8) |
-                        (a4 & 0xFF)))[2:]
+                    ((a1 & 0xFF) << 24) |
+                    ((a2 & 0xFF) << 16) |
+                    ((a3 & 0xFF) << 8) |
+                    (a4 & 0xFF)))[2:]
 
             if bts == '0' or len(bts) < 2:
                 return 0.0
@@ -163,30 +172,32 @@ class CodeGenerator(NodeVisitor):
 
                 lc += 1
 
-    def _symbol_exists(self, symbol: str, scope: int = 0):
+    def _symbol_exists(self, symbol: str, stype, scope: int = 0):
         try:
-            return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)), None) is not None
+            return next(filter(lambda s: s.name == symbol and type(s) is stype, self.symbols.get(scope)),
+                        None) is not None
         except TypeError:
             if scope != 0:
-                return self._symbol_exists(symbol, scope=0)
+                return self._symbol_exists(symbol, stype, scope=0)
             else:
                 return False
 
-    def _find_symbol(self, symbol: str, scope: int = 0):
+    def _find_symbol(self, symbol: str, stype, scope: int = 0):
         # if symbol not found in current scope: change scope to 0 and try again
         try:
-            sym = next(filter(lambda s: s.name == symbol, self.symbols.get(scope)), None)
+            sym = next(filter(lambda s: s.name == symbol and type(s) is stype, self.symbols.get(scope)), None)
             sym_index = self.symbols.get(scope).index(sym)
             return sym, sym_index, scope
         except:
             if scope != 0:
-                return self._find_symbol(symbol, scope=0)
+                return self._find_symbol(symbol, stype, scope=0)
             else:
                 self._fail('Symbol {s} not found'.format(s=symbol))
 
     def _insert_symbol(self, symbol: Symbol, scope: int = 0):
         try:
             self.symbols.get(scope).append(symbol)
+            print(colored("SYMOBLS: ", "yellow"), self.symbols)
         except AttributeError:
             self.symbols[scope] = []
             self.symbols.get(scope).append(symbol)
@@ -224,13 +235,12 @@ class CodeGenerator(NodeVisitor):
 
         # Insert into symbol table
         if node.modify:
-            if not self._symbol_exists(node.left.value, self.scope):
+            if not self._symbol_exists(node.left.value, stype=VariableSymbol, scope=self.scope):
                 self._fail("Symbol {s} not found".format(s=node.left.value))
         else:
-            self._insert_symbol(symbol=IntegerSymbol(name=node.left.value, value=value), scope=self.scope)
-            print(colored("SYMOBLS: ", "yellow"), self.symbols)
+            self._insert_symbol(symbol=VariableSymbol(name=node.left.value, value=value), scope=self.scope)
 
-        _, varid, varscope = self._find_symbol(node.left.value, scope=self.scope)
+        _, varid, varscope = self._find_symbol(node.left.value, stype=VariableSymbol, scope=self.scope)
 
         # PUSHL / PUSHG
         if varscope == 0:
@@ -278,7 +288,6 @@ class CodeGenerator(NodeVisitor):
                 return res1 % res2
 
     def visit_ValueNode(self, node: ValueNode, parent: Node = None):
-        print("ValueNode", node, " with parent ", parent)
         # let a = 3         -> AssignmentNode       PUSH 3, PUSH(L|G) [index a]
         # let a = 3 + 3     -> TermNode             PUSH 3, PUSH 3, ADD, PUSH(L|G) [index a]
         # let a = b         -> AssignmentNode       POP(L|G) [b], PUSH(L|G) [index a]
@@ -309,7 +318,7 @@ class CodeGenerator(NodeVisitor):
                     op = 'push'
 
                 try:
-                    tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.identifier, self.scope)
+                    tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.identifier, stype=VariableSymbol, scope=self.scope)
                     if tmp_scope == 0:
                         if op == 'pop':
                             self._emit_operation(OP.POPG, arg1=tmp_index)
@@ -344,7 +353,6 @@ class CodeGenerator(NodeVisitor):
             print(colored("Cannot patch {h} with {p}".format(h=head_addr, p=patch_addr), "red"))
 
     def visit_IfNode(self, node: IfNode, parent: Node = None):
-        print("If statement", node)
         patches = []
         jz_last = None
 
@@ -384,8 +392,8 @@ class CodeGenerator(NodeVisitor):
 
                 patches.append(len(self.bytes_out))
                 self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
-                if node.elsenode and cnt >= len(node.elseifnodes) - 1:
-                    print(colored("last node before else", "blue"))
+                # if node.elsenode and cnt >= len(node.elseifnodes) - 1:
+                #     print(colored("last node before else", "blue"))
 
         if node.elsenode:
             # Patch previous IF / ELSEIF with ELSE + 1
@@ -406,7 +414,6 @@ class CodeGenerator(NodeVisitor):
         self._close_scope()
 
     def visit_LoopNode(self, node: LoopNode, parent: Node = None):
-        print("loop node")
         patches = []
 
         if node.condition_pos.value == ConditionPos.TOP:
@@ -446,7 +453,6 @@ class CodeGenerator(NodeVisitor):
         self._close_scope()
 
     def visit_ExpressionNode(self, node: ExpressionNode, parent: Node = None):
-        print("Expression node", node)
         self.visit(node.left)
         self.visit(node.right)
 
@@ -468,26 +474,80 @@ class CodeGenerator(NodeVisitor):
             self._emit_operation(OP.GTEQ)
 
     def visit_CallNode(self, node: CallNode, parent: Node = None):
-        print("Call node", node)
-        if node.type.lower() == 'print':
+        if node.type.value.lower() == 'print':
             # Print signature:
             # PUSH STRING <param> | BUILD STRING <param> onto STACK
-            self.visit(node.value)
+            self.visit(node.args[0])
             # CALL __print
             self._emit_operation(OP.PRINT)
-            pass
+        else:
+            # node.type.value = name of sub
+            # TODO: find ProcedureSymbol node.type.value (to get address, TBD!)
+            proc = self._find_symbol(node.type.value.lower(), stype=ProcedureSymbol, scope=0)[0]
+            # TODO: PUSHL each argument from args[]
+
+            if proc.args != len(node.args):
+                self._fail('Insufficient amount of arguments for procedure {p} - required {n}, given {g}'.format(
+                    p=proc.name, n=proc.args, g=len(node.args)))
+
+            for arg in range(proc.args):
+                try:
+                    self.visit(node.args[arg])
+                    self._emit_operation(OP.PUSHL, arg)
+                except IndexError:
+                    self._fail('Insufficient amount of arguments for procedure {p} - required {n}, given {g}'.format(
+                        p=proc.name, n=proc.args, g=len(node.args)))
+
+            # Push own return address onto stack
+            self._emit_operation(OP.PUSH, len(self.bytes_out) + 18) # 18 = 9 (this operation) + 9 (next jmp) bytes!
+
+            # TODO: emit JMP to address of sub
+            self._emit_operation(OP.JMP, arg1=proc.addr)
 
     def visit_ExitNode(self, node: ExitNode, parent: Node = None):
-        print("exit node", node, parent)
         self.loop_patches.append(len(self.bytes_out))
         self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
         # Backpatched later (at forever / loop end) to address of loop end
 
     def visit_ArrayNode(self, node: ArrayNode, parent: Node = None):
-        print("Array node with {e} entries".format(e=len(node.values)))
         for v in node.values:
             self.visit(v)
         self._emit_operation(OP.DATA, arg1=len(node.values))
+
+    def visit_ProcSubNode(self, node: ProcSubNode, parent: Node = None):
+        # node.left = identifier
+        # node.right = statements body
+        # node.args = argument name(s)
+        if not self._symbol_exists(node.left.value, stype=ProcedureSymbol, scope=0):
+            proc_head = len(self.bytes_out)
+            # TODO: ProcedureSymbols need: Address of procedure in byte memory, arguments -> drop value arg!
+            # self.visit(node.right) -> will generate executable byte code wherever the procedure was declared!
+            # Guard the procedure block with a JMP statement at the beginning and patch it to the end of the sub
+            self._emit_operation(OP.JMP, arg1=0xFFFFFF)
+
+            self._insert_symbol(symbol=ProcedureSymbol(name=node.left.value, args=len(node.args), addr=len(self.bytes_out)),
+                                scope=0)
+
+            self._open_scope()
+            # Pop required values from stack (depending of number of arguments specified!)
+            # for a, arg in enumerate(node.args):
+            # self._insert_symbol(VariableSymbol(name=arg.value, value=a), scope=self.scope)
+            # self._emit_operation(OP.POPL, arg1=a)
+
+            for statement in node.right:
+                self.visit(statement)
+
+            # TODO: If we call the sub later, we push(l) the given arguments into the new (local) scope!
+            # i.e.  my_sub(1, 2, 3) will PUSHL 1 [0], PUSHL 2 [1] and PUSHL 3 [2]
+            # Then the procudure will POPL these args again to be used within the sub
+
+            # TODO: If a return keyword is given, jmp back to the stored return adress (must've been placed on stack before!!)
+            # TODO: OP code JFS (jump from stack), takes a value from the stack and uses it as jump address
+            self._emit_operation(OP.JFS)
+
+            self._backpatch(proc_head, len(self.bytes_out))
+
+            self._close_scope()
 
     def _fail(self, msg: str = ''):
         raise Exception('COMPILER ERROR,{msg}'.format(msg=msg))
@@ -527,5 +587,5 @@ class CodeGenerator(NodeVisitor):
             if len(bytes_out) != 9:
                 self._fail('OP and / or arguments are invalid')
 
-        print([hex(b) for b in bytes_out])
+        # print([hex(b) for b in bytes_out])
         self.bytes_out.extend(bytes_out)
