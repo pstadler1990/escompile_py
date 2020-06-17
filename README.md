@@ -80,7 +80,22 @@ You can use the `exit` keyword to break from loop. This also works in nested loo
 
 #### Arrays
 `let my_arr = [1, 2, 2+1, 42.69]` defines an array with 4 elements (last index is 3!). To access an array's specific index,
-use `my_var[<index>]`.
+use `my_var[<index>]`. Arrays can be made of mixed values, currently `numbers` and `strings`.
+
+```
+let b = 42
+let a = [1, 2, b]
+print("" + a[2])
+a[2] = "Hello"
+print("" + a[2])
+```
+
+outputs:
+
+```
+42.000000
+Hello
+```
 
 ### Examples
 #### Number swapping (w/ temporary variable)
@@ -200,6 +215,25 @@ i: 1.000000
 i: 2.000000
 i: 3.000000
 i: 42.690000
+```
+
+#### Iterating and changing an array
+Changes all members of a zero initialized array to the current counter value:
+```
+let a = [0, 0, 0, 0]
+let i = 0
+repeat
+    a[i] = i
+    print("i after: " + a[i])
+    i = i + 1
+until i = 4
+```
+produces
+```
+i after: 0.000000
+i after: 1.000000
+i after: 2.000000
+i after: 3.000000
 ```
 
 ### Was andres

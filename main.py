@@ -12,13 +12,7 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        let a = [0, 0, 0, 0]
-                        let i = 0
-                        repeat
-                            a[i] = i
-                            print("i after: " + a[i])
-                            i = i + 1
-                        until i = 4
+                        
                         '''
                          )
     for statement in statements:
