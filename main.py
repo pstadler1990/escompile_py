@@ -4,15 +4,29 @@ from esc.codegen import CodeGenerator
 from esc.parser import Parser
 
 # TODO: If release
-import sys
-sys.tracebacklimit = 0
+# import sys
+# sys.tracebacklimit = 0
 
 if __name__ == '__main__':
     p = Parser()
     c = CodeGenerator()
 
     statements = p.parse('''
+                        sub bla(n)
+                            if(n = 5) then
+                                print("n = 5!")
+                                return
+                            else
+                                print("n =! 5")
+                            endif
+                        endsub
                         
+                        let a = 0
+                        repeat
+                            bla(a)
+                            a = a + 1
+                        until a = 10
+                        print("after subroutine ")
                         '''
                          )
     for statement in statements:

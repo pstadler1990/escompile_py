@@ -3,10 +3,6 @@
 # escompile
 Small compiler for the ``evoscript`` language (es).
 
-## Known limitations and bugs
-- string concatenation is currently buggy, due to the way it's using the stack. Building 
-a string from more than two substrings / literals could end up in a shifted / reversed string.
-
 ## Description
 `escompile` is a tool for lexical analysis, parsing and code generation for the `evoscript` language. 
 It's grammar and syntax is mostly based on a modern dialect of the `BASIC` programming language - some
@@ -119,6 +115,8 @@ endsub
 ```
 
 Calling a subroutine (procedure) is done by using the procedures name followed by parantheses, i.e. `my_sub()` or `my_sub(42)`.
+
+You can always exit a subroutine by using the `return` statement. *Note: subroutines cannot return any value!*
 
 ### Examples
 #### Number swapping (w/ temporary variable)
@@ -326,7 +324,7 @@ r: 10.000000
 end of file
 ```
 
-Print a string `str` `n` times:
+#### Print a string `str` `n` times:
 
 ```
 sub my_print(str, n)
@@ -347,4 +345,23 @@ Hello
 Hello
 Hello
 Hello
+```
+
+#### Return from a subroutine at any time
+```
+sub bla
+    print("before return statement")
+    return
+    print("this will never be executed")
+endsub
+
+bla()
+print("after subroutine")
+```
+
+outputs
+
+```
+before return statement
+after subroutine
 ```

@@ -1,7 +1,7 @@
 import enum
 import struct
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
-    CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode
+    CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode, ProcSubReturnNode
 from abc import ABC
 from termcolor import colored
 
@@ -174,7 +174,7 @@ class CodeGenerator(NodeVisitor):
 
     def _symbol_exists(self, symbol: str, stype, scope: int = 0):
         try:
-            return next(filter(lambda s: s.name == symbol and type(s) is stype, self.symbols.get(scope)),
+            return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)),    # ... and type(s) is stype
                         None) is not None
         except TypeError:
             if scope != 0:
@@ -185,7 +185,7 @@ class CodeGenerator(NodeVisitor):
     def _find_symbol(self, symbol: str, stype, scope: int = 0):
         # if symbol not found in current scope: change scope to 0 and try again
         try:
-            sym = next(filter(lambda s: s.name == symbol and type(s) is stype, self.symbols.get(scope)), None)
+            sym = next(filter(lambda s: s.name == symbol, self.symbols.get(scope)), None)   # ... == symbol and type(s) is stype ...
             sym_index = self.symbols.get(scope).index(sym)
             return sym, sym_index, scope
         except:
@@ -197,10 +197,10 @@ class CodeGenerator(NodeVisitor):
     def _insert_symbol(self, symbol: Symbol, scope: int = 0):
         try:
             self.symbols.get(scope).append(symbol)
-            print(colored("SYMOBLS: ", "yellow"), self.symbols)
         except AttributeError:
             self.symbols[scope] = []
             self.symbols.get(scope).append(symbol)
+        print(colored("SYMOBLS: ", "yellow"), self.symbols)
 
     def _open_scope(self):
         if self.scope > 0:
@@ -260,13 +260,10 @@ class CodeGenerator(NodeVisitor):
 
             if (isinstance(res1, float) or isinstance(res1, int)) and (isinstance(res2, float) or isinstance(res2, int)):
                 # Number addition
-                # FIXME: Instead of the two PUSHes of res1 and res2 and the ADD instr,
-                # FIXME: we should only PUSH the result of the addition
                 self._emit_operation(OP.ADD)
                 return res1 + res2
             else:
                 # Mixed string addition (concatenate)
-                # TODO: We need to determine, which concat param is pushed first (OP_CONCAT_LEFT | RIGHT)
                 self._emit_operation(OP.CONCAT, arg1=self.concat_mode)
         elif node.op == OpType.SUB:
             res1 = self.visit(node.left, node)
@@ -307,7 +304,10 @@ class CodeGenerator(NodeVisitor):
                     self._emit_operation(OP.POPG, arg1=tmp_index)
                 else:
                     self._emit_operation(OP.POPL, arg1=tmp_index)
-                return tmp_symbol.value  # return pop_index
+                try:
+                    return tmp_symbol.value  # return pop_index
+                except AttributeError:
+                    pass
             except AttributeError:
                 self._fail('Unknown symbol {id}'.format(id=node.value))
         elif node.value_type == ValueType.NUMBER:
@@ -564,6 +564,10 @@ class CodeGenerator(NodeVisitor):
             self._emit_operation(OP.JFS)
             self._backpatch(proc_head, len(self.bytes_out))
             self.scope = prev_scope
+
+    def visit_ProcSubReturnNode(self, node: ProcSubReturnNode, parent: Node = None):
+        print("visit node return")
+        self._emit_operation(OP.JFS)
 
     def _fail(self, msg: str = ''):
         raise Exception('COMPILER ERROR,{msg}'.format(msg=msg))

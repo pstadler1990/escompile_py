@@ -97,7 +97,10 @@ class ProcSubNode(Binary):
     def __init__(self):
         super().__init__()
         self.args = []
-        # TODO: Define arguments, return address
+
+
+class ProcSubReturnNode(Unary):
+    pass
 
 
 class LoopNode(Binary):
@@ -179,7 +182,8 @@ class Parser:
                     TokenType.LOOP_REPEAT,
                     TokenType.IDENTIFIER,
                     TokenType.LOOP_BREAK,
-                    TokenType.PROC_SUB]:
+                    TokenType.PROC_SUB,
+                    TokenType.PROC_RETURN]:
             if t == TokenType.LET:
                 statements.append(self._parse_assignment())
             elif t == TokenType.BLOCK_IF:
@@ -195,6 +199,8 @@ class Parser:
                     statements.append(self._parse_lmodify())
             elif t == TokenType.PROC_SUB:
                 statements.append(self._parse_sub())
+            elif t == TokenType.PROC_RETURN:
+                statements.append(self._parse_subreturn())
 
             if self._cur_token is not None:
                 t = self._cur_token.ttype
@@ -356,7 +362,23 @@ class Parser:
             self._accept(TokenType.RPARENT)
 
         node.right = self._parse_statements()
+
         self._accept(TokenType.PROC_ENDSUB)
+        return node
+
+    def _parse_subreturn(self) -> ProcSubReturnNode:
+        node = ProcSubReturnNode()
+        print("Proc sub return node")
+        self._accept(TokenType.PROC_RETURN)
+        # if self._cur_token.ttype == TokenType.PROC_RETURN:
+        #     # In case a return keyword is given, ignore all following tokens until the matching endsub is found
+        #     self._accept(TokenType.PROC_RETURN)
+        #     t = self._cur_token_type()
+        #     while t != TokenType.EOF and t is not TokenType.PROC_ENDSUB:
+        #         self._accept(t)
+        #         t = self._cur_token_type()
+        #     if t == TokenType.EOF or self._cur_token is None:
+        #         self._fail('Missing endsub statement to close subroutine')
         return node
 
     def _parse_expression(self) -> ExpressionNode:
