@@ -365,3 +365,18 @@ outputs
 before return statement
 after subroutine
 ```
+
+#### Pass an array to a subroutine
+The following example passes an array to a subroutine (by value). 
+```
+sub a(arr, len)
+    let i = 0
+    repeat
+        print("a: " + arr[i])
+        i = i + 1
+    until i = len
+endsub
+
+let my_arr = [1, 2, 3]
+a(my_arr, 3)
+```

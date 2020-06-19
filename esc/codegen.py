@@ -5,6 +5,8 @@ from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode
 from abc import ABC
 from termcolor import colored
 
+E_MAX_LOCALS = 99
+
 
 class OP(enum.Enum):
     NOP = 0
@@ -216,7 +218,7 @@ class CodeGenerator(NodeVisitor):
 
     def _open_proc_scope(self):
         r = self.proc_scope
-        self.proc_scope += 1
+        self.proc_scope += (E_MAX_LOCALS + 1)
         return r
 
     def visit_AssignmentNode(self, node: AssignmentNode, parent: Node = None):

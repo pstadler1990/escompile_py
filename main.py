@@ -12,21 +12,12 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        sub bla(n)
-                            if(n = 5) then
-                                print("n = 5!")
-                                return
-                            else
-                                print("n =! 5")
-                            endif
+                        sub a(arr, len)
+                            print("a: " + arr[0])
                         endsub
                         
-                        let a = 0
-                        repeat
-                            bla(a)
-                            a = a + 1
-                        until a = 10
-                        print("after subroutine ")
+                        let my_arr = [1, 2, 3]
+                        a(my_arr, 3)
                         '''
                          )
     for statement in statements:
