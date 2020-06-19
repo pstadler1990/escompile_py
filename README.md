@@ -118,6 +118,8 @@ Calling a subroutine (procedure) is done by using the procedures name followed b
 
 You can always exit a subroutine by using the `return` statement. *Note: subroutines cannot return any value!*
 
+**Important** You can only define `99` local variables within a procedure's scope! This number however is arbitrary and can be changed in the compiler's code.
+
 ### Examples
 #### Number swapping (w/ temporary variable)
 ```

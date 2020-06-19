@@ -370,15 +370,6 @@ class Parser:
         node = ProcSubReturnNode()
         print("Proc sub return node")
         self._accept(TokenType.PROC_RETURN)
-        # if self._cur_token.ttype == TokenType.PROC_RETURN:
-        #     # In case a return keyword is given, ignore all following tokens until the matching endsub is found
-        #     self._accept(TokenType.PROC_RETURN)
-        #     t = self._cur_token_type()
-        #     while t != TokenType.EOF and t is not TokenType.PROC_ENDSUB:
-        #         self._accept(t)
-        #         t = self._cur_token_type()
-        #     if t == TokenType.EOF or self._cur_token is None:
-        #         self._fail('Missing endsub statement to close subroutine')
         return node
 
     def _parse_expression(self) -> ExpressionNode:
@@ -446,7 +437,6 @@ class Parser:
 
     def _parse_addexpr(self) -> Union[TermNode, ExpressionNode, ValueNode]:
         node = TermNode()
-        # node_tmp = self._parse_multexpr()
         node_tmp = self._parse_modexpr()
 
         t = self._cur_token_type()
