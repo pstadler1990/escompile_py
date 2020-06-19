@@ -12,12 +12,11 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        sub a(arr, len)
-                            print("a: " + arr[0])
-                        endsub
+                        func a
+                            return 42
+                        endfunc
                         
-                        let my_arr = [1, 2, 3]
-                        a(my_arr, 3)
+                        print("after a call: " + a() * 2)
                         '''
                          )
     for statement in statements:

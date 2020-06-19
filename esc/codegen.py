@@ -1,7 +1,9 @@
 import enum
 import struct
+from typing import Union
+
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
-    CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode, ProcSubReturnNode
+    CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode, ProcSubReturnNode, ProcFuncNode
 from abc import ABC
 from termcolor import colored
 
@@ -523,6 +525,7 @@ class CodeGenerator(NodeVisitor):
 
             # JMP to address of sub
             self._emit_operation(OP.JMP, arg1=proc.addr)
+            return 1    # required for ADD operation
 
     def visit_ExitNode(self, node: ExitNode, parent: Node = None):
         self.loop_patches.append(len(self.bytes_out))
@@ -534,7 +537,7 @@ class CodeGenerator(NodeVisitor):
             self.visit(v)
         self._emit_operation(OP.DATA, arg1=len(node.values))
 
-    def visit_ProcSubNode(self, node: ProcSubNode, parent: Node = None):
+    def visit_ProcSubNode(self, node: Union[ProcSubNode, ProcFuncNode], parent: Node = None):
         # node.left = identifier
         # node.right = statements body
         # node.args = argument name(s)
@@ -560,8 +563,6 @@ class CodeGenerator(NodeVisitor):
             for statement in node.right:
                 self.visit(statement)
 
-            # TODO: If a return keyword is given, jmp back to the stored return adress (must've been placed on stack before!!)
-
             # OP code JFS (jump from stack), takes a value from the stack and uses it as jump address
             self._emit_operation(OP.JFS)
             self._backpatch(proc_head, len(self.bytes_out))
@@ -569,7 +570,15 @@ class CodeGenerator(NodeVisitor):
 
     def visit_ProcSubReturnNode(self, node: ProcSubReturnNode, parent: Node = None):
         print("visit node return")
-        self._emit_operation(OP.JFS)
+        if node.ret_arg is not None:
+            self.visit(node.ret_arg)
+            self._emit_operation(OP.JFS, arg1=1)  # TODO: more than 1 values returned from stack?
+        else:
+            # no return value
+            self._emit_operation(OP.JFS)
+
+    def visit_ProcFuncNode(self, node: ProcFuncNode, parent: Node = None):
+        self.visit_ProcSubNode(node, parent)
 
     def _fail(self, msg: str = ''):
         raise Exception('COMPILER ERROR,{msg}'.format(msg=msg))

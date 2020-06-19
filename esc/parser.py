@@ -99,8 +99,16 @@ class ProcSubNode(Binary):
         self.args = []
 
 
+class ProcFuncNode(Binary):
+    def __init__(self):
+        super().__init__()
+        self.args = []
+
+
 class ProcSubReturnNode(Unary):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.ret_arg = None
 
 
 class LoopNode(Binary):
@@ -134,6 +142,7 @@ class Parser:
         self._prev_token = None
         self._statements: [StatementNode] = []
         self._loops = 0
+        self._cur_proc_is_func: bool = False
 
     def _next_token(self, peek: bool = False):
         if self._cur_token is not None:
@@ -183,7 +192,8 @@ class Parser:
                     TokenType.IDENTIFIER,
                     TokenType.LOOP_BREAK,
                     TokenType.PROC_SUB,
-                    TokenType.PROC_RETURN]:
+                    TokenType.PROC_RETURN,
+                    TokenType.PROC_FUNC]:
             if t == TokenType.LET:
                 statements.append(self._parse_assignment())
             elif t == TokenType.BLOCK_IF:
@@ -201,15 +211,14 @@ class Parser:
                 statements.append(self._parse_sub())
             elif t == TokenType.PROC_RETURN:
                 statements.append(self._parse_subreturn())
+            elif t == TokenType.PROC_FUNC:
+                statements.append(self._parse_func())
 
             if self._cur_token is not None:
                 t = self._cur_token.ttype
             else:
                 break
         return statements
-
-    def _parse_expressions(self):
-        pass
 
     def _parse_assignment(self) -> AssignmentNode:
         node = AssignmentNode()
@@ -263,13 +272,17 @@ class Parser:
         self._accept(TokenType.BLOCK_ENDIF)
         return node
 
-    def _parse_call(self):
+    def _parse_call(self, ident=None):
         # Call the specified function <func>
         # Available functions:
         #  - PRINT(str)
         node = CallNode()
-        node.type = self._cur_token
-        self._accept(TokenType.IDENTIFIER)
+
+        if ident:
+            node.type = ident
+        else:
+            node.type = self._cur_token
+            self._accept(TokenType.IDENTIFIER)
 
         self._accept(TokenType.LPARENT)
 
@@ -361,6 +374,7 @@ class Parser:
 
             self._accept(TokenType.RPARENT)
 
+        self._cur_proc_is_func = False
         node.right = self._parse_statements()
 
         self._accept(TokenType.PROC_ENDSUB)
@@ -368,8 +382,44 @@ class Parser:
 
     def _parse_subreturn(self) -> ProcSubReturnNode:
         node = ProcSubReturnNode()
-        print("Proc sub return node")
         self._accept(TokenType.PROC_RETURN)
+
+        if self._cur_proc_is_func:
+            node.ret_arg = self._parse_expression()
+
+        self._cur_proc_is_func = False
+        return node
+
+    def _parse_func(self) -> ProcFuncNode:
+        node = ProcFuncNode()
+        # func my_name(args)
+        #   .. func_body
+        #   .. return <value> optional
+        # endfunc
+        self._accept(TokenType.PROC_FUNC)
+        node.left = self._cur_token
+        self._accept(TokenType.IDENTIFIER)
+        if self._cur_token.ttype == TokenType.LPARENT:
+            # parantheses without arguments are optional,
+            # however, they are required if arguments are passed
+            self._accept(TokenType.LPARENT)
+            t = self._cur_token_type()
+            while t not in [TokenType.RPARENT]:
+                if t == TokenType.COMMA:
+                    self._accept(TokenType.COMMA)
+                else:
+                    tmp_node = self._cur_token
+                    self._accept(TokenType.IDENTIFIER)
+                    node.args.append(tmp_node)
+                t = self._cur_token_type()
+
+            self._accept(TokenType.RPARENT)
+
+        self._cur_proc_is_func = True
+        node.right = self._parse_statements()
+        self._cur_proc_is_func = False
+
+        self._accept(TokenType.PROC_ENDFUNC)
         return node
 
     def _parse_expression(self) -> ExpressionNode:
@@ -502,7 +552,7 @@ class Parser:
         else:
             return self._parse_value()
 
-    def _parse_value(self) -> ValueNode:
+    def _parse_value(self) -> Union[ValueNode, CallNode]:
         t = self._cur_token_type()
         if t == TokenType.NUMBER:
             node = ValueNode(ValueType.NUMBER)
@@ -526,6 +576,9 @@ class Parser:
                     node.identifier = node.value
                     node.index = self._parse_expression()
                     self._accept(TokenType.RSQBRACKET)
+                elif self._cur_token.ttype == TokenType.LPARENT:
+                    # Subroutine / function call as rvalue
+                    return self._parse_call(ident=Token(TokenType.IDENTIFIER, value=node.value, cn=self._scanner.char_offset))
             except AttributeError:
                 pass
             return node

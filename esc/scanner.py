@@ -52,6 +52,10 @@ class TokenType(enum.Enum):
     PROC_ENDSUB = 201
     PROC_RETURN = 202
 
+    # Functions
+    PROC_FUNC = 210
+    PROC_ENDFUNC = 211
+
     EOF = 999
 
 
@@ -269,6 +273,8 @@ class Scanner:
                 return Token(TokenType.BLOCK_ELSE, cn=self._char_offset)
             elif tmp_str == 'exit':
                 return Token(TokenType.LOOP_BREAK, cn=self._char_offset)
+            elif tmp_str == 'func':
+                return Token(TokenType.PROC_FUNC, cn=self._char_offset)
         elif slen == 5:
             if tmp_str == 'endif':
                 return Token(TokenType.BLOCK_ENDIF, cn=self._char_offset)
@@ -286,6 +292,8 @@ class Scanner:
         elif slen == 7:
             if tmp_str == 'forever':
                 return Token(TokenType.LOOP_FOREVER, cn=self._char_offset)
+            elif tmp_str == 'endfunc':
+                return Token(TokenType.PROC_ENDFUNC, cn=self._char_offset)
 
         return Token(TokenType.IDENTIFIER, cn=self._char_offset, value=tmp_str)
 
