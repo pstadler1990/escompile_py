@@ -386,8 +386,6 @@ class Parser:
 
         if self._cur_proc_is_func:
             node.ret_arg = self._parse_expression()
-
-        self._cur_proc_is_func = False
         return node
 
     def _parse_func(self) -> ProcFuncNode:

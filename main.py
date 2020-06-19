@@ -12,11 +12,15 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        func a
-                            return 42
+                        func fact(n)
+                            if(n <= 1) then
+                                return 1
+                            else    
+                                return n * fact(n-1)
+                            endif  
                         endfunc
                         
-                        print("after a call: " + a() * 2)
+                        print("10! = " + fact(10))
                         '''
                          )
     for statement in statements:

@@ -120,6 +120,23 @@ You can always exit a subroutine by using the `return` statement. *Note: subrout
 
 **Important** You can only define `99` local variables within a procedure's scope! This number however is arbitrary and can be changed in the compiler's code.
 
+## Functions
+Functions are like `procedures` (subroutines) but unlike procedures, they allow you to return values. 
+
+```
+func my_func(a)
+    return a * 2
+endfunc
+
+print("result: " + my_func(4))
+
+> result: 8.000000
+```
+
+In functions, you **must** use the `return` keyword (it is optional within procedures)!
+
+Functions can also be nested (recursion, see the `factorial` example).
+
 ### Examples
 #### Number swapping (w/ temporary variable)
 ```
@@ -381,4 +398,24 @@ endsub
 
 let my_arr = [1, 2, 3]
 a(my_arr, 3)
+```
+
+#### Factorial (recursive)
+
+```
+func fact(n)
+    if(n <= 1) then
+        return 1
+    else    
+        return n * fact(n-1)
+    endif  
+endfunc
+
+print("10! = " + fact(10))
+```
+
+produces:
+
+```
+10! = 3628800.000000
 ```
