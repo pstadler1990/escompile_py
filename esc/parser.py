@@ -117,6 +117,13 @@ class LoopNode(Binary):
         self.condition_pos = ConditionPos.TOP
 
 
+class ExternApiNode(Unary):
+    def __init__(self, node_type: str = '', node_identifier: str = ''):
+        super().__init__()
+        self.node_type: str = node_type
+        self.identifier: str = node_identifier
+
+
 class TermNode(Binary):
     def __init__(self):
         super().__init__()
@@ -193,7 +200,8 @@ class Parser:
                     TokenType.LOOP_BREAK,
                     TokenType.PROC_SUB,
                     TokenType.PROC_RETURN,
-                    TokenType.PROC_FUNC]:
+                    TokenType.PROC_FUNC,
+                    TokenType.API_EXTERN]:
             if t == TokenType.LET:
                 statements.append(self._parse_assignment())
             elif t == TokenType.BLOCK_IF:
@@ -213,6 +221,8 @@ class Parser:
                 statements.append(self._parse_subreturn())
             elif t == TokenType.PROC_FUNC:
                 statements.append(self._parse_func())
+            elif t == TokenType.API_EXTERN:
+                statements.append(self._parse_extern())
 
             if self._cur_token is not None:
                 t = self._cur_token.ttype
@@ -418,6 +428,20 @@ class Parser:
         self._cur_proc_is_func = False
 
         self._accept(TokenType.PROC_ENDFUNC)
+        return node
+
+    def _parse_extern(self) -> ExternApiNode:
+        node = ExternApiNode()
+        self._accept(TokenType.API_EXTERN)
+        tmp_type = self._cur_token_type()
+        if tmp_type in [TokenType.PROC_FUNC]:
+            node.node_type = tmp_type.value
+            self._accept(self._cur_token.ttype)
+            node.identifier = self._cur_token.value
+            self._accept(TokenType.IDENTIFIER)
+        else:
+            self._fail('Invalid external type {t}'.format(t=tmp_type))
+
         return node
 
     def _parse_expression(self) -> ExpressionNode:

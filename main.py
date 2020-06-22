@@ -12,15 +12,13 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        func sum(n)
-                            if(n != 0) then
-                                return n + sum(n - 1)
-                            else    
-                                return n
-                            endif
-                        endfunc 
+                        extern func my_external_func
                         
-                        print("sum: " + sum(3))
+                        func bla(n)
+                            return my_external_func(n)
+                        endfunc
+                        
+                        print("result: " + bla(42))
                         '''
                          )
     for statement in statements:

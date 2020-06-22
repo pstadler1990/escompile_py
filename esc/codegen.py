@@ -3,7 +3,7 @@ import struct
 from typing import Union
 
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
-    CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode, ProcSubReturnNode, ProcFuncNode
+    CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode, ProcSubReturnNode, ProcFuncNode, ExternApiNode
 from abc import ABC
 from termcolor import colored
 
@@ -42,6 +42,7 @@ class OP(enum.Enum):
     JMP = 0x41
     JFS = 0x42
     JMPFUN = 0x43
+    CALL = 0x44
 
     PRINT = 0x50
 
@@ -91,6 +92,7 @@ class CodeGenerator(NodeVisitor):
         self.concat_mode = 0
         self.loop_patches = []
         self.proc_scope = 100
+        self.external_symbols = []
 
     def generate(self, root: Node):
         return self.visit(root)
@@ -194,6 +196,8 @@ class CodeGenerator(NodeVisitor):
             sym_index = self.symbols.get(scope).index(sym)
             return sym, sym_index, scope
         except:
+            if symbol in self.external_symbols:
+                return None
             if scope != 0:
                 return self._find_symbol(symbol, stype, scope=0)
             else:
@@ -507,25 +511,36 @@ class CodeGenerator(NodeVisitor):
             # CALL __print
             self._emit_operation(OP.PRINT)
         else:
-            proc = self._find_symbol(node.type.value, stype=ProcedureSymbol, scope=0)[0]
+            try:
+                proc = self._find_symbol(node.type.value, stype=ProcedureSymbol, scope=0)[0]
 
-            if proc.args != len(node.args):
-                self._fail('Insufficient amount of arguments for procedure {p} - required {n}, given {g}'.format(
-                    p=proc.name, n=proc.args, g=len(node.args)))
-
-            for arg in range(proc.args):
-                try:
-                    self.visit(node.args[arg])
-                    self._emit_operation(OP.PUSHL, arg)
-                except IndexError:
+                if proc.args != len(node.args):
                     self._fail('Insufficient amount of arguments for procedure {p} - required {n}, given {g}'.format(
                         p=proc.name, n=proc.args, g=len(node.args)))
 
-            # Push own return address onto stack
-            self._emit_operation(OP.PUSH, len(self.bytes_out) + 18) # 18 = 9 (this operation) + 9 (next jmp) bytes!
+                for arg in range(proc.args):
+                    try:
+                        self.visit(node.args[arg])
+                        self._emit_operation(OP.PUSHL, arg)
+                    except IndexError:
+                        self._fail(
+                            'Insufficient amount of arguments for procedure {p} - required {n}, given {g}'.format(
+                                p=proc.name, n=proc.args, g=len(node.args)))
 
-            # JMP to address of sub
-            self._emit_operation(OP.JMPFUN, arg1=proc.addr)
+                # Push own return address onto stack
+                self._emit_operation(OP.PUSH, len(self.bytes_out) + 18)  # 18 = 9 (this operation) + 9 (next jmp) bytes!
+
+                # JMP to address of sub
+                self._emit_operation(OP.JMPFUN, arg1=proc.addr)
+            except TypeError:
+                # External defined function / subroutine
+                for a, arg in enumerate(node.args):
+                    self.visit(arg)
+                    self._emit_operation(OP.PUSHL, a)
+                self._emit_operation(OP.PUSHS, arg1=len(node.type.value), arg2=node.type.value)
+                # Call needs information on number of arguments (arg1)
+                self._emit_operation(OP.CALL, arg1=len(node.args))
+
             return 1    # required for ADD operation
 
     def visit_ExitNode(self, node: ExitNode, parent: Node = None):
@@ -580,6 +595,11 @@ class CodeGenerator(NodeVisitor):
 
     def visit_ProcFuncNode(self, node: ProcFuncNode, parent: Node = None):
         self.visit_ProcSubNode(node, parent)
+
+    def visit_ExternApiNode(self, node: ExternApiNode, parent: Node = None):
+        # Add identifier to list of external identifiers
+        if node.identifier not in self.external_symbols:
+            self.external_symbols.append(node.identifier)
 
     def _fail(self, msg: str = ''):
         raise Exception('COMPILER ERROR,{msg}'.format(msg=msg))

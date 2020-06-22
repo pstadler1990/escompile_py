@@ -137,7 +137,28 @@ In functions, you **must** use the `return` keyword (it is optional within proce
 
 Functions can also be nested (recursion, see the `factorial` example).
 
-### Examples
+## C-API
+To exchange data with the embedding application, evoscript provides a `C-API`.
+
+For external linkage of user defined C functions / routines, one need to declare these functions by using the `extern` keyword.
+
+Currently, only functions / subroutines are able to link with the C-API, so we need to provide the `func` keyword as well:
+
+`extern func my_external_func`.
+
+You should provide these declarations at the top of your scripts, at least the very least before referencing the functions / subroutines.
+
+The example below declares an external function `my_external_func` and calls it afterwards:
+```
+extern func my_external_func
+                        
+my_external_func(42)
+```
+If the external function is not defined and registered within the embedding application, one will get a `Unknown function / subroutine` error and the program
+execution will terminate. 
+
+---
+### Code Examples
 #### Number swapping (w/ temporary variable)
 ```
 let a = 1
