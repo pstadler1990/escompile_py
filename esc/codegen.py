@@ -41,6 +41,7 @@ class OP(enum.Enum):
     JZ = 0x40
     JMP = 0x41
     JFS = 0x42
+    JMPFUN = 0x43
 
     PRINT = 0x50
 
@@ -506,7 +507,7 @@ class CodeGenerator(NodeVisitor):
             # CALL __print
             self._emit_operation(OP.PRINT)
         else:
-            proc = self._find_symbol(node.type.value.lower(), stype=ProcedureSymbol, scope=0)[0]
+            proc = self._find_symbol(node.type.value, stype=ProcedureSymbol, scope=0)[0]
 
             if proc.args != len(node.args):
                 self._fail('Insufficient amount of arguments for procedure {p} - required {n}, given {g}'.format(
@@ -524,7 +525,7 @@ class CodeGenerator(NodeVisitor):
             self._emit_operation(OP.PUSH, len(self.bytes_out) + 18) # 18 = 9 (this operation) + 9 (next jmp) bytes!
 
             # JMP to address of sub
-            self._emit_operation(OP.JMP, arg1=proc.addr)
+            self._emit_operation(OP.JMPFUN, arg1=proc.addr)
             return 1    # required for ADD operation
 
     def visit_ExitNode(self, node: ExitNode, parent: Node = None):

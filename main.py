@@ -12,15 +12,15 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        func fact(n)
-                            if(n <= 1) then
-                                return 1
+                        func sum(n)
+                            if(n != 0) then
+                                return n + sum(n - 1)
                             else    
-                                return n * fact(n-1)
-                            endif  
-                        endfunc
+                                return n
+                            endif
+                        endfunc 
                         
-                        print("10! = " + fact(10))
+                        print("sum: " + sum(3))
                         '''
                          )
     for statement in statements:

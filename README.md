@@ -386,7 +386,7 @@ after subroutine
 ```
 
 #### Pass an array to a subroutine
-The following example passes an array to a subroutine (by value). 
+The following example passes an array to a subroutine (by reference). 
 ```
 sub a(arr, len)
     let i = 0
@@ -418,4 +418,43 @@ produces:
 
 ```
 10! = 3628800.000000
+```
+
+#### Pow(x,y)
+```
+func pow(x, n)
+    if(n = 1) then
+        return x
+    else
+        return x * pow(x, n - 1)
+    endif
+endfunc
+
+let x = 2
+let y = 8
+print("pow " + x + "^" + y + " -> " + pow(x, y))
+```
+
+outputs:
+
+```
+pow 2.000000^8.000000 -> 256.000000
+```
+
+#### Fibonacci numbers (recursive)
+```
+func fib(n)
+    if(n < 2) then
+        return n
+    endif
+    return fib(n - 2) + fib(n - 1)
+endfunc
+
+print("a: " + fib(15))
+```
+
+outputs 
+
+```
+a: 610.000000
 ```

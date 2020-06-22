@@ -550,7 +550,7 @@ class Parser:
         else:
             return self._parse_value()
 
-    def _parse_value(self) -> Union[ValueNode, CallNode]:
+    def _parse_value(self) -> Union[ValueNode, CallNode, None]:
         t = self._cur_token_type()
         if t == TokenType.NUMBER:
             node = ValueNode(ValueType.NUMBER)
@@ -581,4 +581,5 @@ class Parser:
                 pass
             return node
         else:
-            self._fail('Invalid value for token')
+            return None
+            # self._fail('Invalid value for token')
