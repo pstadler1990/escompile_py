@@ -521,7 +521,7 @@ class CodeGenerator(NodeVisitor):
                 for arg in range(proc.args):
                     try:
                         self.visit(node.args[arg])
-                        self._emit_operation(OP.PUSHL, arg)
+                        # self._emit_operation(OP.PUSHL, arg)
                     except IndexError:
                         self._fail(
                             'Insufficient amount of arguments for procedure {p} - required {n}, given {g}'.format(
@@ -536,7 +536,6 @@ class CodeGenerator(NodeVisitor):
                 # External defined function / subroutine
                 for a, arg in enumerate(node.args):
                     self.visit(arg)
-                    self._emit_operation(OP.PUSHL, a)
                 self._emit_operation(OP.PUSHS, arg1=len(node.type.value), arg2=node.type.value)
                 # Call needs information on number of arguments (arg1)
                 self._emit_operation(OP.CALL, arg1=len(node.args))
@@ -575,6 +574,7 @@ class CodeGenerator(NodeVisitor):
                 # i.e.  my_sub(1, 2, 3) will PUSHL 1 [0], PUSHL 2 [1] and PUSHL 3 [2]
                 # Then the procudure will POPL these args again to be used within the sub
                 self._insert_symbol(VariableSymbol(name=arg.value, value=a), scope=proc_scope)
+                self._emit_operation(OP.PUSHL, arg1=len(node.args) - a - 1)
 
             for statement in node.right:
                 self.visit(statement)

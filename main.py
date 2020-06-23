@@ -12,11 +12,13 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        func bla(n)
-                            print("n: " + n)
+                        extern func my_external_func
+                        
+                        func my_other_func(n)
+                            return my_external_func(n, 42)
                         endfunc
                         
-                        bla(10)
+                        my_other_func(10)
                         '''
                          )
     for statement in statements:
