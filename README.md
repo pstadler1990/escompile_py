@@ -11,6 +11,9 @@ programs may also be compatible.
 ## Script file input
 TBD
 
+## Unit tests
+The package provides unit tests for all submodules `test_scanner`, `test_parser` and `test_codegen`.
+
 ## Code generation
 This tool compiles to byte code for a custom virtual machine running on the desired embedded devices.
 
@@ -460,4 +463,22 @@ outputs:
 
 ```
 pow 2.000000^8.000000 -> 256.000000
+```
+
+#### Fibonacci numbers (recursive)
+```
+func fib(n)
+    if(n < 2) then
+        return n
+    endif
+    return fib(n - 2) + fib(n - 1)
+endfunc
+
+print("a: " + fib(15))
+```
+
+outputs 
+
+```
+a: 610.000000
 ```

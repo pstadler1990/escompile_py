@@ -228,6 +228,9 @@ class CodeGenerator(NodeVisitor):
         self.proc_scope += (E_MAX_LOCALS + 1)
         return r
 
+    def visit_NoneType(self, node: None, parent: Node = None):
+        self._fail(msg="Unexpected compile error")
+
     def visit_AssignmentNode(self, node: AssignmentNode, parent: Node = None):
         # LET IDENTIFIER = <expr>
         # PUSH <expr> (number|string)

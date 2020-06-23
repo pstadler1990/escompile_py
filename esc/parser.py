@@ -174,7 +174,9 @@ class Parser:
             if self._cur_token.ttype == ttype:
                 self._cur_token = self._next_token()
             else:
-                self._fail()
+                self._fail(msg="Expected {e}, got {t}".format(e=ttype, t=self._cur_token))
+        else:
+            self._fail(msg="Unexpected EOF")
 
     def _fail(self, msg: str = ''):
         try:
@@ -297,7 +299,7 @@ class Parser:
         self._accept(TokenType.LPARENT)
 
         t = self._cur_token_type()
-        while t not in [TokenType.RPARENT]:
+        while t is not TokenType.EOF and t not in [TokenType.RPARENT]:
             if t == TokenType.COMMA:
                 self._accept(TokenType.COMMA)
             else:
