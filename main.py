@@ -19,23 +19,25 @@ else:
 
 parser = argparse.ArgumentParser(description='evoscript CLI {v}'.format(v=C_VERSION))
 parser.add_argument('-p', '--parse', action='store_true')
-parser.add_argument('-f', '--file', type=str)
+parser.add_argument('-i', '--input', type=str)
+parser.add_argument('-o', '--output', type=str)
 parser.add_argument('-e', '--execute', action='store_true')
 args = parser.parse_args()
 
+file_dir = None
 file_handle = None
 
 if __name__ == '__main__':
 
-    if args.file and len(args.file):
-        if os.path.isabs(args.file):
+    if args.input and len(args.input):
+        if os.path.isabs(args.input):
             # Open file directly if exists
-            with open(args.file, 'r') as f:
+            with open(args.input, 'r') as f:
                 file_handle = f.read()
         else:
             if C_CONFIG['script_dirs'] is None or not len(C_CONFIG['script_dirs']):
                 raise FileNotFoundError('No script directories given')
-            base_file = os.path.basename(args.file)
+            base_file = os.path.basename(args.input)
             # Walk through all dirs (and config.additional_dirs) if file found there
             found_file = False
             for a_dir in C_CONFIG['script_dirs']:
@@ -43,6 +45,7 @@ if __name__ == '__main__':
                     for filename in filenames:
                         if filename == base_file:
                             found_file = True
+                            file_dir = dirpath
                             with open(os.sep.join([dirpath, filename]), 'r') as f:
                                 file_handle = f.read()
                             break
@@ -61,6 +64,14 @@ if __name__ == '__main__':
         print(c.bytes_out)
         print(c.format())
         fbytes = c.finalize()
+
+        if args.output:
+            # Write file to output
+            out = os.sep.join([file_dir, args.output])
+            with open(out, 'w') as f:
+                for b in fbytes:
+                    f.write(b)
+            print("** WROTE {b} bytes to file {f}".format(b=len(fbytes), f=out))
 
         # Execute parsed script?
         if args.execute:

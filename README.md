@@ -23,10 +23,10 @@ The package provides a `CLI` (command line interface) for the most tasks.
 
 | Option | Full name | Arguments | Description |
 | ------ | --------- | --------- | ----------- |
-| `-f`   | `--file` | Filename or absolute path to file | The script file to be processed. You can either provide a filename or an absolute path with the filename. Plain filenames are searched within the configured script directories. |
+| `-i`   | `--input` | Filename or absolute path to file | The script file to be processed. You can either provide a filename or an absolute path with the filename. Plain filenames are searched within the configured script directories. |
 | `-p`   | `--parse` | - | Parse only option. Use this switch to skip code generation. Useful for error handling in an external text editor |
 | `-e`   | `--execute` | - | Execute the parsed script with the configured `es_vm` executable. Can be useful for debugging small scripts, but doesn't always reflect the behaviour an the target platform (i.e. ARM). |
-
+| `-o`   | `--output` | Filename or absolute path to file | The output file (optional) |
 
 ## Code generation
 This tool compiles to byte code for a custom virtual machine running on the desired embedded devices.
