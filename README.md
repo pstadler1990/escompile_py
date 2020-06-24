@@ -22,7 +22,7 @@ The package provides a `CLI` (command line interface) for the most tasks.
 | ------ | --------- | --------- | ----------- |
 | `-i`   | `--input` | Filename or absolute path to file | The script file to be processed. You can either provide a filename or an absolute path with the filename. Plain filenames are searched within the configured script directories. |
 | `-p`   | `--parse` | - | Parse only option. Use this switch to skip code generation. Useful for error handling in an external text editor |
-| `-e`   | `--execute` | - | Execute the parsed script with the configured `es_vm` executable. Can be useful for debugging small scripts, but doesn't always reflect the behaviour an the target platform (i.e. ARM). |
+| `-e`   | `--execute` | - | Execute the parsed script with the configured `es_vm` executable. Can be useful for debugging small scripts, but doesn't always reflect the behaviour on the target platform (i.e. ARM). |
 | `-o`   | `--output` | Filename or absolute path to file | The output file (optional) |
 
 ## Build 
@@ -111,13 +111,25 @@ repeat
     print("i: " + i)
 until i = 10
 ```
-`repeat` .. `until` creates infinite loops.
+`repeat` .. `forever` creates infinite loops.
 ```
 repeat
     print("This will be printed forever")
 forever
 ```
-You can use the `exit` keyword to break from loop. This also works in nested loops.
+You can use the `exit` keyword to break from loop. This also works in nested loops:
+
+```
+let i = 10
+repeat
+    i = i - 1
+    print("i: " + i)
+    if(i <= 0) then
+        exit
+    endif
+forever
+print("program will continue here")
+```
 
 ### Arrays
 `let my_arr = [1, 2, 2+1, 42.69]` defines an array with 4 elements (last index is 3!). To access an array's specific index,
