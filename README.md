@@ -8,11 +8,25 @@ Small compiler for the ``evoscript`` language (es).
 It's grammar and syntax is mostly based on a modern dialect of the `BASIC` programming language - some
 programs may also be compatible. 
 
-## Script file input
-TBD
+## Configuration
+See `config.yml` for configurable arguments.
 
-## Unit tests
-The package provides unit tests for all submodules `test_scanner`, `test_parser` and `test_codegen`.
+| Argument | Default | Description |
+| -------- | ------- | ----------- | 
+| `debug` | `False` | Enable debug mode (mostly stack tracing) |
+| `script_dirs` | `[]` | Provide all directories where the `evoscript` files are to be searched. If `None`, no relative file input is possible. |
+| `vm_exe` | - | The `es_vm` executable file (only required if you want to pass the `-e` option) | 
+
+
+## CLI
+The package provides a `CLI` (command line interface) for the most tasks. 
+
+| Option | Full name | Arguments | Description |
+| ------ | --------- | --------- | ----------- |
+| `-f`   | `--file` | Filename or absolute path to file | The script file to be processed. You can either provide a filename or an absolute path with the filename. Plain filenames are searched within the configured script directories. |
+| `-p`   | `--parse` | - | Parse only option. Use this switch to skip code generation. Useful for error handling in an external text editor |
+| `-e`   | `--execute` | - | Execute the parsed script with the configured `es_vm` executable. Can be useful for debugging small scripts, but doesn't always reflect the behaviour an the target platform (i.e. ARM). |
+
 
 ## Code generation
 This tool compiles to byte code for a custom virtual machine running on the desired embedded devices.
@@ -38,17 +52,44 @@ However, some commands need more than 4 bytes for their argument, so arg1 and ar
 As every number is represented as `double` type, all operations dealing with plain numbers are using the above 
 binary format.
 
+## C-API
+To exchange data with the embedding application, evoscript provides a `C-API`.
+
+For external linkage of user defined C functions / routines, one need to declare these functions by using the `extern` keyword.
+
+Currently, only functions / subroutines are able to link with the C-API, so we need to provide the `func` keyword as well:
+
+`extern func my_external_func`.
+
+You should provide these declarations at the top of your scripts, at least the very least before referencing the functions / subroutines.
+
+The example below declares an external function `my_external_func` and calls it afterwards:
+```
+extern func my_external_func
+                        
+my_external_func(42)
+```
+If the external function is not defined and registered within the embedding application, one will get a `Unknown function / subroutine` error and the program
+execution will terminate. 
+
+## Unit tests
+The package provides unit tests for all submodules `test_scanner`, `test_parser` and `test_codegen`.
+
 ## Byte compression
-TBD
+Currently all operations (except ones for string handling) are of equal size (9 bytes). 
+However, many operations don't require arguments at all, so we could trim the remaining 8 bytes. 
+At the current state this isn't implemented yet.
 
+---
+## Language reference
+### Assignment
 
-## Keyword reference
 `let` defines a variable with a given name and value.
 ```
 let my_var = 42
 ```
 
-#### Program flow
+### Program flow
 `if` / `elseif` / `else` / `endif` allows structuring the control flow of the program.
 ```
 ...
@@ -77,7 +118,7 @@ forever
 ```
 You can use the `exit` keyword to break from loop. This also works in nested loops.
 
-#### Arrays
+### Arrays
 `let my_arr = [1, 2, 2+1, 42.69]` defines an array with 4 elements (last index is 3!). To access an array's specific index,
 use `my_var[<index>]`. Arrays can be made of mixed values, currently `numbers` and `strings`.
 
@@ -96,7 +137,7 @@ outputs:
 Hello
 ```
 
-## Procedures
+### Procedures
 Procedures are subroutines without any returned value (in contrast to functions). 
 
 You can define a procedure anywhere in the code, it will be guarded automatically by the compiler.
@@ -123,7 +164,7 @@ You can always exit a subroutine by using the `return` statement. *Note: subrout
 
 **Important** You can only define `99` local variables within a procedure's scope! This number however is arbitrary and can be changed in the compiler's code.
 
-## Functions
+### Functions
 Functions are like `procedures` (subroutines) but unlike procedures, they allow you to return values. 
 
 ```
@@ -139,26 +180,6 @@ print("result: " + my_func(4))
 In functions, you **must** use the `return` keyword (it is optional within procedures)!
 
 Functions can also be nested (recursion, see the `factorial` example).
-
-## C-API
-To exchange data with the embedding application, evoscript provides a `C-API`.
-
-For external linkage of user defined C functions / routines, one need to declare these functions by using the `extern` keyword.
-
-Currently, only functions / subroutines are able to link with the C-API, so we need to provide the `func` keyword as well:
-
-`extern func my_external_func`.
-
-You should provide these declarations at the top of your scripts, at least the very least before referencing the functions / subroutines.
-
-The example below declares an external function `my_external_func` and calls it afterwards:
-```
-extern func my_external_func
-                        
-my_external_func(42)
-```
-If the external function is not defined and registered within the embedding application, one will get a `Unknown function / subroutine` error and the program
-execution will terminate. 
 
 ---
 ### Code Examples

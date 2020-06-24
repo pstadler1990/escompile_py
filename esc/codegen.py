@@ -1,11 +1,9 @@
 import enum
 import struct
 from typing import Union
-
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
     CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode, ProcSubReturnNode, ProcFuncNode, ExternApiNode
 from abc import ABC
-from termcolor import colored
 
 E_MAX_LOCALS = 99
 
@@ -93,6 +91,12 @@ class CodeGenerator(NodeVisitor):
         self.loop_patches = []
         self.proc_scope = 100
         self.external_symbols = []
+        self.stats = {
+            'max_scope': 0,
+            'max_arrays': 0,
+            'max_symbols': 0,
+            'max_strlen': 0
+        }
 
     def generate(self, root: Node):
         return self.visit(root)
@@ -103,7 +107,10 @@ class CodeGenerator(NodeVisitor):
         for b in self.bytes_out:
             out_stream.append(str(b))
 
-        print(colored("OUT BYTES: ", "blue"), len(out_stream))
+        print(
+            "** STATS: | Bytes: {b} | Max scope: {s} | Max arrays: {a} | Max symbols: {sy} | Longest string: {slen} **".format(
+                b=len(out_stream), s=self.stats['max_scope'], a=self.stats['max_arrays'], sy=self.stats['max_symbols'],
+                slen=self.stats['max_strlen']))
         return out_stream
 
     def _format_arg(self, bc, op: OP = None):
@@ -181,7 +188,7 @@ class CodeGenerator(NodeVisitor):
 
     def _symbol_exists(self, symbol: str, stype, scope: int = 0):
         try:
-            return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)),    # ... and type(s) is stype
+            return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)),  # ... and type(s) is stype
                         None) is not None
         except TypeError:
             if scope != 0:
@@ -192,7 +199,8 @@ class CodeGenerator(NodeVisitor):
     def _find_symbol(self, symbol: str, stype, scope: int = 0):
         # if symbol not found in current scope: change scope to 0 and try again
         try:
-            sym = next(filter(lambda s: s.name == symbol, self.symbols.get(scope)), None)   # ... == symbol and type(s) is stype ...
+            sym = next(filter(lambda s: s.name == symbol, self.symbols.get(scope)),
+                       None)  # ... == symbol and type(s) is stype ...
             sym_index = self.symbols.get(scope).index(sym)
             return sym, sym_index, scope
         except:
@@ -206,10 +214,11 @@ class CodeGenerator(NodeVisitor):
     def _insert_symbol(self, symbol: Symbol, scope: int = 0):
         try:
             self.symbols.get(scope).append(symbol)
+            self.stats['max_symbols'] = len(self.symbols)
         except AttributeError:
             self.symbols[scope] = []
             self.symbols.get(scope).append(symbol)
-        print(colored("SYMOBLS: ", "yellow"), self.symbols)
+            self.stats['max_symbols'] = len(self.symbols)
 
     def _open_scope(self):
         if self.scope > 0:
@@ -217,8 +226,10 @@ class CodeGenerator(NodeVisitor):
                 for symbol in self.symbols.get(self.scope):
                     self._insert_symbol(symbol, scope=self.scope + 1)
             except TypeError:
-                print(colored("Could not copy scope {s}".format(s=self.scope), "red"))
+                pass
         self.scope += 1
+        if self.stats['max_scope'] < self.scope:
+            self.stats['max_scope'] = self.scope
 
     def _close_scope(self):
         self.scope = max(0, self.scope - 1)
@@ -235,7 +246,6 @@ class CodeGenerator(NodeVisitor):
         # LET IDENTIFIER = <expr>
         # PUSH <expr> (number|string)
         # PUSHG|PUSHL [index]
-        print('Assign identifier {id}'.format(id=node.left.value))
         value = self.visit(node.right, node)
 
         try:
@@ -270,7 +280,8 @@ class CodeGenerator(NodeVisitor):
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
 
-            if (isinstance(res1, float) or isinstance(res1, int)) and (isinstance(res2, float) or isinstance(res2, int)):
+            if (isinstance(res1, float) or isinstance(res1, int)) and (
+                    isinstance(res2, float) or isinstance(res2, int)):
                 # Number addition
                 self._emit_operation(OP.ADD)
                 return res1 + res2
@@ -280,25 +291,29 @@ class CodeGenerator(NodeVisitor):
         elif node.op == OpType.SUB:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            if (isinstance(res1, float) or isinstance(res1, int)) and (isinstance(res2, float) or isinstance(res2, int)):
+            if (isinstance(res1, float) or isinstance(res1, int)) and (
+                    isinstance(res2, float) or isinstance(res2, int)):
                 self._emit_operation(OP.SUB)
                 return res1 - res2
         elif node.op == OpType.MUL:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            if (isinstance(res1, float) or isinstance(res1, int)) and (isinstance(res2, float) or isinstance(res2, int)):
+            if (isinstance(res1, float) or isinstance(res1, int)) and (
+                    isinstance(res2, float) or isinstance(res2, int)):
                 self._emit_operation(OP.MUL)
                 return res1 * res2
         elif node.op == OpType.DIV:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            if (isinstance(res1, float) or isinstance(res1, int)) and (isinstance(res2, float) or isinstance(res2, int)):
+            if (isinstance(res1, float) or isinstance(res1, int)) and (
+                    isinstance(res2, float) or isinstance(res2, int)):
                 self._emit_operation(OP.DIV)
                 return res1 / res2
         elif node.op == OpType.MOD:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-            if (isinstance(res1, float) or isinstance(res1, int)) and (isinstance(res2, float) or isinstance(res2, int)):
+            if (isinstance(res1, float) or isinstance(res1, int)) and (
+                    isinstance(res2, float) or isinstance(res2, int)):
                 self._emit_operation(OP.MOD)
                 return res1 % res2
 
@@ -328,6 +343,8 @@ class CodeGenerator(NodeVisitor):
         elif node.value_type == ValueType.STRING:
             # PUSHS string
             self._emit_operation(OP.PUSHS, arg1=len(node.value), arg2=node.value)
+            if self.stats['max_strlen'] < len(node.value):
+                self.stats['max_strlen'] = len(node.value)
         elif node.value_type == ValueType.ARRAYELEMENT:
             self.visit(node.index)
             if parent:
@@ -336,7 +353,8 @@ class CodeGenerator(NodeVisitor):
                     op = 'push'
 
                 try:
-                    tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.identifier, stype=VariableSymbol, scope=self.scope)
+                    tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.identifier, stype=VariableSymbol,
+                                                                         scope=self.scope)
                     if tmp_scope == 0:
                         if op == 'pop':
                             self._emit_operation(OP.POPG, arg1=tmp_index)
@@ -366,9 +384,8 @@ class CodeGenerator(NodeVisitor):
             self.bytes_out[head_addr + 6] = s[5]
             self.bytes_out[head_addr + 7] = s[6]
             self.bytes_out[head_addr + 8] = s[7]
-            print(colored("Patched {h} with {p}".format(h=head_addr, p=patch_addr), "green"))
         except IndexError:
-            print(colored("Cannot patch {h} with {p}".format(h=head_addr, p=patch_addr), "red"))
+            pass
 
     def visit_IfNode(self, node: IfNode, parent: Node = None):
         patches = []
@@ -410,8 +427,6 @@ class CodeGenerator(NodeVisitor):
 
                 patches.append(len(self.bytes_out))
                 self._emit_operation(OP.JMP, arg1=0xFFFFFFFF)
-                # if node.elsenode and cnt >= len(node.elseifnodes) - 1:
-                #     print(colored("last node before else", "blue"))
 
             if node.elsenode:
                 # Patch previous IF / ELSEIF with ELSE + 1
@@ -543,7 +558,7 @@ class CodeGenerator(NodeVisitor):
                 # Call needs information on number of arguments (arg1)
                 self._emit_operation(OP.CALL, arg1=len(node.args))
 
-            return 1    # required for ADD operation
+            return 1  # required for ADD operation
 
     def visit_ExitNode(self, node: ExitNode, parent: Node = None):
         self.loop_patches.append(len(self.bytes_out))
@@ -554,6 +569,7 @@ class CodeGenerator(NodeVisitor):
         for v in node.values:
             self.visit(v)
         self._emit_operation(OP.DATA, arg1=len(node.values))
+        self.stats['max_arrays'] += 1
 
     def visit_ProcSubNode(self, node: Union[ProcSubNode, ProcFuncNode], parent: Node = None):
         # node.left = identifier
@@ -565,8 +581,9 @@ class CodeGenerator(NodeVisitor):
             # Guard the procedure block with a JMP statement at the beginning and patch it to the end of the sub
             self._emit_operation(OP.JMP, arg1=0xFFFFFF)
 
-            self._insert_symbol(symbol=ProcedureSymbol(name=node.left.value, args=len(node.args), addr=len(self.bytes_out)),
-                                scope=0)
+            self._insert_symbol(
+                symbol=ProcedureSymbol(name=node.left.value, args=len(node.args), addr=len(self.bytes_out)),
+                scope=0)
 
             prev_scope = self.scope
             proc_scope = self._open_proc_scope()
@@ -588,7 +605,6 @@ class CodeGenerator(NodeVisitor):
             self.scope = prev_scope
 
     def visit_ProcSubReturnNode(self, node: ProcSubReturnNode, parent: Node = None):
-        print("visit node return")
         if node.ret_arg is not None:
             self.visit(node.ret_arg)
             self._emit_operation(OP.JFS, arg1=1)  # TODO: more than 1 values returned from stack?
@@ -642,5 +658,4 @@ class CodeGenerator(NodeVisitor):
             if len(bytes_out) != 9:
                 self._fail('OP and / or arguments are invalid')
 
-        # print([hex(b) for b in bytes_out])
         self.bytes_out.extend(bytes_out)

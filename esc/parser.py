@@ -303,7 +303,11 @@ class Parser:
             if t == TokenType.COMMA:
                 self._accept(TokenType.COMMA)
             else:
-                node.args.append(self._parse_expression())
+                tmp_node = self._parse_expression()
+                if tmp_node:
+                    node.args.append(tmp_node)
+                else:
+                    self._fail('Unexpected expression')
             t = self._cur_token_type()
 
         self._accept(TokenType.RPARENT)
