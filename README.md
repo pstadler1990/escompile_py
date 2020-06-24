@@ -17,7 +17,6 @@ See `config.yml` for configurable arguments.
 | `script_dirs` | `[]` | Provide all directories where the `evoscript` files are to be searched. If `None`, no relative file input is possible. |
 | `vm_exe` | - | The `es_vm` executable file (only required if you want to pass the `-e` option) | 
 
-
 ## CLI
 The package provides a `CLI` (command line interface) for the most tasks. 
 
@@ -27,6 +26,10 @@ The package provides a `CLI` (command line interface) for the most tasks.
 | `-p`   | `--parse` | - | Parse only option. Use this switch to skip code generation. Useful for error handling in an external text editor |
 | `-e`   | `--execute` | - | Execute the parsed script with the configured `es_vm` executable. Can be useful for debugging small scripts, but doesn't always reflect the behaviour an the target platform (i.e. ARM). |
 | `-o`   | `--output` | Filename or absolute path to file | The output file (optional) |
+
+## Build 
+You can use `pyinstaller` with the `-F` switch to create a standalone executable for the package:
+`pyinstaller -F main.py`
 
 ## Code generation
 This tool compiles to byte code for a custom virtual machine running on the desired embedded devices.

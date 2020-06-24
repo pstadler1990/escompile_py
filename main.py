@@ -53,7 +53,7 @@ if __name__ == '__main__':
                 raise FileNotFoundError('File {f} not found'.format(f=base_file))
     else:
         print("** No file option given, exit")
-        exit(-1)
+        sys.exit(-1)
 
     p = Parser()
     statements = p.parse(file_handle)
