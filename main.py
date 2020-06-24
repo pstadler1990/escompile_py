@@ -12,14 +12,18 @@ if __name__ == '__main__':
     c = CodeGenerator()
 
     statements = p.parse('''
-                        func fib(n)
-                            if(n < 2) then
-                                return n
-                            endif
-                            return fib(n - 2) + fib(n - 1)
-                        endfunc
+                        extern func my_external_func
+                        extern func my_external_delay
+                        extern func my_external_gpio
                         
-                        print("a: " + fib(22))
+                        print("Start of script")
+                        repeat
+                            my_external_delay(1000)
+                            my_external_gpio(1)
+                            my_external_delay(1000)
+                            my_external_gpio(0)
+                            print("loop")
+                        forever
                         '''
                          )
     for statement in statements:
