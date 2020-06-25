@@ -274,7 +274,8 @@ class CodeGenerator(NodeVisitor):
             self._insert_symbol(symbol=VariableSymbol(name=node.left.value, value=value, const=node.is_const), scope=self.scope)
 
         var, varid, varscope = self._find_symbol(node.left.value, stype=VariableSymbol, scope=self.scope)
-        if var.is_const:
+
+        if node.modify and var.is_const:
             self._fail("Cannot modify constant {s}".format(s=node.left.value))
 
         # PUSHL / PUSHG
