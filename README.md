@@ -90,6 +90,10 @@ At the current state this isn't implemented yet.
 let my_var = 42
 ```
 
+#### Constants
+Use the `const` modifier after a variable assignment to make it a constant:
+`let MY_CONST = 42 const`. You cannot modify constants after the assignment!
+
 ### Program flow
 `if` / `elseif` / `else` / `endif` allows structuring the control flow of the program.
 ```
