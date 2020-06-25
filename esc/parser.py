@@ -150,6 +150,12 @@ class ValueNode(Unary):
         self.index = None
 
 
+class UnaryNode(ValueNode):
+    def __init__(self, value_type: ValueType):
+        super().__init__(value_type=value_type)
+        self.sign = '+'
+
+
 class ParseSyntaxException(Exception):
     pass
 
@@ -296,7 +302,7 @@ class Parser:
             # let my_var = (3 + 42)
             node.right = self._parse_expression()
 
-        if self._cur_token.ttype == TokenType.CONST:
+        if self._cur_token is not None and self._cur_token.ttype == TokenType.CONST:
             # node is const
             node.is_const = True
             self._accept(TokenType.CONST)
@@ -628,10 +634,25 @@ class Parser:
         node = ExpressionNode()
 
         t = self._cur_token_type()
-        if t in [TokenType.MINUS, TokenType.BANG]:
+        if t in [TokenType.MINUS, TokenType.PLUS]:
             node.left = t
             self._accept(t)
-            node.right = self._parse_subexpr()
+            tmp_node = self._parse_subexpr()
+            if tmp_node.value_type == ValueType.NUMBER:
+                tmp_node.value = -tmp_node.value
+                return tmp_node
+            else:
+                tn = UnaryNode(value_type=tmp_node.value_type)
+                tn.value = tmp_node.value
+                tn.identifier = tmp_node.identifier
+                if t == TokenType.MINUS:
+                    tn.sign = '-'
+                else:
+                    tn.sign = '+'
+                return tn
+        elif t == TokenType.BANG:
+            # TODO: Add bang  !a
+            pass
         else:
             node = self._parse_subexpr()
         return node
@@ -678,4 +699,3 @@ class Parser:
             return node
         else:
             return None
-            # self._fail('Invalid value for token')

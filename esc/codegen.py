@@ -3,7 +3,7 @@ import struct
 from typing import Union
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
     CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode, ProcSubReturnNode, ProcFuncNode, ExternApiNode, \
-    ImportNode
+    ImportNode, UnaryNode
 from abc import ABC
 
 E_MAX_LOCALS = 99
@@ -29,6 +29,7 @@ class OP(enum.Enum):
     NOTEQ = 0x25
 
     ADD = 0x30
+    NEG = 0x31
     SUB = 0x32
     MUL = 0x33
     DIV = 0x34
@@ -288,7 +289,6 @@ class CodeGenerator(NodeVisitor):
         if node.op == OpType.ADD:
             res1 = self.visit(node.left, node)
             res2 = self.visit(node.right, node)
-
             if (isinstance(res1, float) or isinstance(res1, int)) and (
                     isinstance(res2, float) or isinstance(res2, int)):
                 # Number addition
@@ -394,6 +394,13 @@ class CodeGenerator(NodeVisitor):
                     self._fail('Unknown symbol {id}'.format(id=node.value))
             return node.index.value
         return node.value
+
+    def visit_UnaryNode(self, node: UnaryNode, parent: Node = None):
+        print("visit unary")
+        self.visit_ValueNode(node)
+        if node.sign == '-':
+            self._emit_operation(OP.NEG)
+        return 0
 
     def _backpatch(self, head_addr, patch_addr):
         f = float(patch_addr)
