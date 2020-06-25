@@ -358,7 +358,11 @@ class Parser:
             if t == TokenType.COMMA:
                 self._accept(TokenType.COMMA)
             else:
-                tmp_node = self._parse_expression()
+                if t == TokenType.LSQBRACKET:
+                    tmp_node = self._parse_array()
+                else:
+                    tmp_node = self._parse_expression()
+
                 if tmp_node:
                     node.args.append(tmp_node)
                 else:
