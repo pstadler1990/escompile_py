@@ -124,6 +124,7 @@ class Scanner:
                 while self._cur_char is not '\n':
                     self._advance(peek)
                 self._advance()
+                continue
 
             if self._cur_char == '+':
                 self._advance(peek)
