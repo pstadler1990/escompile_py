@@ -34,6 +34,7 @@ class TokenType(enum.Enum):
     LSQBRACKET = 41
     RSQBRACKET = 42
     COMMA = 43
+    CONST = 44
 
     LOOP_REPEAT = 50
     LOOP_FOREVER = 51
@@ -282,6 +283,8 @@ class Scanner:
                 return Token(TokenType.BLOCK_ENDIF, cn=self._char_offset)
             elif tmp_str == 'until':
                 return Token(TokenType.LOOP_UNTIL, cn=self._char_offset)
+            elif tmp_str == 'const':
+                return Token(TokenType.CONST, cn=self._char_offset)
         elif slen == 6:
             if tmp_str == 'repeat':
                 return Token(TokenType.LOOP_REPEAT, cn=self._char_offset)

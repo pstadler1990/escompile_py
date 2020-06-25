@@ -71,6 +71,7 @@ class AssignmentNode(Binary):
     def __init__(self, modify: bool = False):
         super().__init__()
         self.modify = modify
+        self.is_const = False
 
 
 class IfNode(Binary):
@@ -294,6 +295,11 @@ class Parser:
         else:
             # let my_var = (3 + 42)
             node.right = self._parse_expression()
+
+        if self._cur_token.ttype == TokenType.CONST:
+            # node is const
+            node.is_const = True
+            self._accept(TokenType.CONST)
 
         return node
 

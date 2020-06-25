@@ -62,9 +62,10 @@ class Symbol(ABC):
 
 
 class VariableSymbol(Symbol):
-    def __init__(self, name: str, value):
+    def __init__(self, name: str, value, const: bool = False):
         super().__init__(name)
         self.value = value
+        self.is_const = const
 
 
 class ProcedureSymbol(Symbol):
@@ -72,6 +73,7 @@ class ProcedureSymbol(Symbol):
         super().__init__(name)
         self.args = args
         self.addr = addr
+        self.is_const = True
 
 
 class NodeVisitor:
@@ -269,9 +271,11 @@ class CodeGenerator(NodeVisitor):
             if not self._symbol_exists(node.left.value, stype=VariableSymbol, scope=self.scope):
                 self._fail("Symbol {s} not found".format(s=node.left.value))
         else:
-            self._insert_symbol(symbol=VariableSymbol(name=node.left.value, value=value), scope=self.scope)
+            self._insert_symbol(symbol=VariableSymbol(name=node.left.value, value=value, const=node.is_const), scope=self.scope)
 
-        _, varid, varscope = self._find_symbol(node.left.value, stype=VariableSymbol, scope=self.scope)
+        var, varid, varscope = self._find_symbol(node.left.value, stype=VariableSymbol, scope=self.scope)
+        if var.is_const:
+            self._fail("Cannot modify constant {s}".format(s=node.left.value))
 
         # PUSHL / PUSHG
         if varscope == 0:
