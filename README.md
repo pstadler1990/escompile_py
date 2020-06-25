@@ -94,6 +94,21 @@ let my_var = 42
 Use the `const` modifier after a variable assignment to make it a constant:
 `let MY_CONST = 42 const`. You cannot modify constants after the assignment!
 
+### Relational operators
+`evoscript` provides most of known `BASIC` operators:
+
+| Operator | Description |
+| -------- | ----------- |
+| `+`, `-`, `*`, `/` | Basic arithmetic |
+| `%`, `mod` | Modulo |
+| `-`, `+` (unary) | Unary minus / plus (sign) |
+| `!` | Not |
+| `=` | Equals | 
+| `<>` | Not equals |
+| `<`, `>`, `<=`, `>=` | Relational lower / greater |
+| `and`, `or` | Logical and / or |
+
+
 ### Program flow
 `if` / `elseif` / `else` / `endif` allows structuring the control flow of the program.
 ```

@@ -400,6 +400,8 @@ class CodeGenerator(NodeVisitor):
         self.visit_ValueNode(node)
         if node.sign == '-':
             self._emit_operation(OP.NEG)
+        elif node.sign == '!':
+            self._emit_operation(OP.NOT)
         return 0
 
     def _backpatch(self, head_addr, patch_addr):

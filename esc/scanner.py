@@ -152,11 +152,7 @@ class Scanner:
 
             if self._cur_char == '!':
                 self._advance(peek)
-                if self._peek() == '=':
-                    self._advance(peek)
-                    return Token(TokenType.REL_NOTEQ, cn=self._char_offset)
-                else:
-                    raise ScanWrongTokenException('Invalid conditional operator')
+                return Token(TokenType.BANG, cn=self._char_offset)
 
             if self._cur_char == '[':
                 self._advance(peek)
@@ -175,6 +171,9 @@ class Scanner:
                 if self._peek() == '=':
                     self._advance(peek)
                     return Token(TokenType.REL_LTEQ, cn=self._char_offset)
+                elif self._peek() == '>':
+                    self._advance(peek)
+                    return Token(TokenType.REL_NOTEQ, cn=self._char_offset)
                 else:
                     return Token(TokenType.REL_LT, cn=self._char_offset)
 
@@ -266,6 +265,8 @@ class Scanner:
         if slen == 2:
             if tmp_str == 'if':
                 return Token(TokenType.BLOCK_IF, cn=self._char_offset)
+            elif tmp_str == 'or':
+                return Token(TokenType.LOG_OR, cn=self._char_offset)
         elif slen == 3:
             if tmp_str == 'let':
                 return Token(TokenType.LET, cn=self._char_offset)

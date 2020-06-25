@@ -529,6 +529,7 @@ class Parser:
         t = self._cur_token_type()
         while t == TokenType.LOG_OR:
             self._accept(TokenType.LOG_OR)
+            node.op = OpType.OR
             node.left = node_tmp
             node.right = self._parse_expression()
             return node
@@ -634,7 +635,7 @@ class Parser:
         node = ExpressionNode()
 
         t = self._cur_token_type()
-        if t in [TokenType.MINUS, TokenType.PLUS]:
+        if t in [TokenType.MINUS, TokenType.PLUS, TokenType.BANG]:
             node.left = t
             self._accept(t)
             tmp_node = self._parse_subexpr()
@@ -647,12 +648,11 @@ class Parser:
                 tn.identifier = tmp_node.identifier
                 if t == TokenType.MINUS:
                     tn.sign = '-'
-                else:
+                elif t == TokenType.PLUS:
                     tn.sign = '+'
+                else:
+                    tn.sign = '!'
                 return tn
-        elif t == TokenType.BANG:
-            # TODO: Add bang  !a
-            pass
         else:
             node = self._parse_subexpr()
         return node
