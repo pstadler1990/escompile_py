@@ -44,9 +44,6 @@ class TokenType(enum.Enum):
     LOG_AND = 61
     LOG_OR = 62
 
-    # Built-in functions
-    CALL_PRINT = 70
-
     # Procedures
     PROC_SUB = 200
     PROC_ENDSUB = 201

@@ -15,9 +15,10 @@ class OP(enum.Enum):
     PUSHL = 0x12
     POPL = 0x13
     PUSH = 0x14
-    POP = 0x15
-    PUSHS = 0x16
-    DATA = 0x17
+    PUSHS = 0x15
+    DATA = 0x16
+    PUSHA = 0x17
+    PUSHAS = 0x18
 
     EQ = 0x20
     LT = 0x21
@@ -43,6 +44,7 @@ class OP(enum.Enum):
     CALL = 0x44
 
     PRINT = 0x50
+    ARGTYPE = 0x51
 
     @classmethod
     def has(cls, value):
@@ -327,26 +329,42 @@ class CodeGenerator(NodeVisitor):
         if node.value_type == ValueType.IDENTIFIER:
             try:
                 tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.value, stype=VariableSymbol, scope=self.scope)
+
                 if tmp_scope == 0:
                     self._emit_operation(OP.POPG, arg1=tmp_index)
                 else:
                     self._emit_operation(OP.POPL, arg1=tmp_index)
                 try:
+                    if parent.value_type == ValueType.ARRAYELEMENT:
+                        self._emit_operation(OP.PUSHAS)
+                except AttributeError:
+                    pass
+
+                try:
                     return tmp_symbol.value  # return pop_index
                 except AttributeError:
                     pass
+
             except AttributeError:
                 self._fail('Unknown symbol {id}'.format(id=node.value))
+
         elif node.value_type == ValueType.NUMBER:
             # Initialize with constant
-            self._emit_operation(OP.PUSH, arg1=node.value)
+            try:
+                if parent.value_type == ValueType.ARRAYELEMENT:
+                    self._emit_operation(OP.PUSHA, arg1=node.value)
+                else:
+                    self._emit_operation(OP.PUSH, arg1=node.value)
+            except AttributeError:
+                self._emit_operation(OP.PUSH, arg1=node.value)
+
         elif node.value_type == ValueType.STRING:
             # PUSHS string
             self._emit_operation(OP.PUSHS, arg1=len(node.value), arg2=node.value)
             if self.stats['max_strlen'] < len(node.value):
                 self.stats['max_strlen'] = len(node.value)
         elif node.value_type == ValueType.ARRAYELEMENT:
-            self.visit(node.index)
+            self.visit(node.index, parent=node)
             if parent:
                 op = 'pop'
                 if isinstance(parent, AssignmentNode):
@@ -528,6 +546,10 @@ class CodeGenerator(NodeVisitor):
             self.visit(node.args[0])
             # CALL __print
             self._emit_operation(OP.PRINT)
+        elif node.type.value.lower() == 'argtype':
+            # CALL __argtype
+            self.visit(node.args[0])
+            self._emit_operation(OP.ARGTYPE)
         else:
             try:
                 proc = self._find_symbol(node.type.value, stype=ProcedureSymbol, scope=0)[0]

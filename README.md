@@ -194,6 +194,26 @@ In functions, you **must** use the `return` keyword (it is optional within proce
 
 Functions can also be nested (recursion, see the `factorial` example).
 
+### Builtin operators and functions
+#### Argtype
+Use the `argtype` function to determine the type of a variable:
+
+```
+if(argtype(42) = 10) then
+	print("42 is a number")
+endif
+
+> 42 is a number
+```
+
+You can use the following constants for the argtype values:
+
+```
+let __ARGTYPE_NUMBER = 10
+let __ARGTYPE_STRING = 20
+let __ARGTYPE_ARRAY = 30
+```
+
 ---
 ### Code Examples
 #### Number swapping (w/ temporary variable)
@@ -515,4 +535,37 @@ outputs
 
 ```
 a: 610.000000
+```
+
+#### Argtype operator
+```
+let __ARGTYPE_NUMBER = 10
+let __ARGTYPE_STRING = 20
+let __ARGTYPE_ARRAY = 30
+
+let a = 42
+let b = "Hello World"
+let c = a + b
+let d = [1, 2, "String"]
+
+print("Argtype a: " + argtype(a))
+print("Argtype b: " + argtype(b))
+print("Argtype c: " + argtype(c))
+print("Argtype d: " + argtype(d))
+
+if(argtype(a) = __ARGTYPE_NUMBER) then
+	print("a is a Number")
+endif
+
+if(argtype(b) = __ARGTYPE_STRING) then
+	print("b is a String")
+endif
+
+if(argtype(c) = __ARGTYPE_STRING) then
+	print("c is a String")
+endif
+
+if(argtype(d) = __ARGTYPE_ARRAY) then
+	print("d is a Array")
+endif
 ```

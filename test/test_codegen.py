@@ -371,3 +371,59 @@ class TestCodegen(unittest.TestCase):
         self.assertTrue(lines[0] == 'n: 10.000000 m: 99.000000')
         self.assertTrue(lines[1] == 'n is now: 10.000000')
         self.assertTrue(lines[2] == 'result: 20.000000')
+
+    def test_argtype(self):
+        p = Parser()
+        c = CodeGenerator()
+        statements = p.parse('''
+                            let __ARGTYPE_NUMBER = 10
+                            let __ARGTYPE_STRING = 20
+                            let __ARGTYPE_ARRAY = 30
+                            
+                            let a = 42
+                            let b = "Hello World"
+                            let c = a + b
+                            let d = [1, 2, "String"]
+                            
+                            print("Argtype a: " + argtype(a))
+                            print("Argtype b: " + argtype(b))
+                            print("Argtype c: " + argtype(c))
+                            print("Argtype d: " + argtype(d))
+                            
+                            if(argtype(a) = __ARGTYPE_NUMBER) then
+                                print("a is a Number")
+                            endif
+                            
+                            if(argtype(b) = __ARGTYPE_STRING) then
+                                print("b is a String")
+                            endif
+                            
+                            if(argtype(c) = __ARGTYPE_STRING) then
+                                print("c is a String")
+                            endif
+                            
+                            if(argtype(d) = __ARGTYPE_ARRAY) then
+                                print("d is a Array")
+                            endif
+                            ''')
+
+        for statement in statements:
+            c.generate(statement)
+
+        fbytes = c.finalize()
+
+        # CALL vm.exe with bytes_out -b option
+        sub = subprocess.Popen(
+            ["C:\\Users\\patrick.stadler\\CLionProjects\\es_vm\\cmake-build-debug\\es_vm.exe", "-b"] + fbytes,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.system('taskkill /f /im es_vm.exe')
+        out, err = sub.communicate()
+        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        self.assertTrue(lines[0] == 'Argtype a: 10.000000')
+        self.assertTrue(lines[1] == 'Argtype b: 20.000000')
+        self.assertTrue(lines[2] == 'Argtype c: 20.000000')
+        self.assertTrue(lines[3] == 'Argtype d: 30.000000')
+        self.assertTrue(lines[4] == 'a is a Number')
+        self.assertTrue(lines[5] == 'b is a String')
+        self.assertTrue(lines[6] == 'c is a String')
+        self.assertTrue(lines[7] == 'd is a Array')
