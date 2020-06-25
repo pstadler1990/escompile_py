@@ -45,6 +45,7 @@ class OP(enum.Enum):
 
     PRINT = 0x50
     ARGTYPE = 0x51
+    LEN = 0x52
 
     @classmethod
     def has(cls, value):
@@ -540,16 +541,21 @@ class CodeGenerator(NodeVisitor):
             self._emit_operation(OP.GTEQ)
 
     def visit_CallNode(self, node: CallNode, parent: Node = None):
-        if node.type.value.lower() == 'print':
+        n = node.type.value.lower()
+        if n == 'print':
             # Print signature:
             # PUSH STRING <param> | BUILD STRING <param> onto STACK
             self.visit(node.args[0])
             # CALL __print
             self._emit_operation(OP.PRINT)
-        elif node.type.value.lower() == 'argtype':
+        elif n == 'argtype':
             # CALL __argtype
             self.visit(node.args[0])
             self._emit_operation(OP.ARGTYPE)
+        elif n == 'len':
+            # CALL __len
+            self.visit(node.args[0])
+            self._emit_operation(OP.LEN)
         else:
             try:
                 proc = self._find_symbol(node.type.value, stype=ProcedureSymbol, scope=0)[0]

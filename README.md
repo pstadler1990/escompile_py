@@ -214,6 +214,16 @@ let __ARGTYPE_STRING = 20
 let __ARGTYPE_ARRAY = 30
 ```
 
+#### Len
+Use the `len` function to determine the length of a variable. The length is depended on the variable's type
+and is defined as:
+
+| Variable type | Returned length |
+| ------------- | ------ |
+| Number | `0.000000` (no length) |
+| String | String length |
+| Array | Number of array elements |
+
 ---
 ### Code Examples
 #### Number swapping (w/ temporary variable)
@@ -568,4 +578,22 @@ endif
 if(argtype(d) = __ARGTYPE_ARRAY) then
 	print("d is a Array")
 endif
+```
+
+#### Len operator
+```
+let a = 42
+let b = "Hello World"
+let c = [1, 2, 3]
+let d = [1, 2, 3, 4, 42, 69]
+
+print("Len a: " + len(a))
+print("Len b: " + len(b))
+print("Len c: " + len(c))
+print("Len d: " + len(d))
+
+> Len a: 0.000000
+> Len b: 11.000000
+> Len c: 3.000000
+> Len d: 6.000000
 ```
