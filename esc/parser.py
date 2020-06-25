@@ -1,6 +1,11 @@
 import abc
 import enum
+import os
+import re
 from typing import Union
+
+import yaml
+
 from esc.scanner import Scanner, TokenType, Token
 
 
@@ -124,6 +129,12 @@ class ExternApiNode(Unary):
         self.identifier: str = node_identifier
 
 
+class ImportNode(Unary):
+    def __init__(self, file: str = ''):
+        super().__init__()
+        self.file = file
+
+
 class TermNode(Binary):
     def __init__(self):
         super().__init__()
@@ -156,17 +167,55 @@ class Parser:
             self._prev_token = self._cur_token
         return self._scanner.next_token(peek)
 
+    @staticmethod
+    def _clean_string(s: str):
+        lines = list(filter(lambda e: len(e), [ln.lstrip() for ln in s.splitlines()]))
+        for ln, _ in enumerate(lines):
+            lines[ln] = ''.join(lines[ln])
+        return '\n'.join(lines)
+
     def parse(self, input_str: str) -> [StatementNode]:
         # Parse given input string
         # We perform some string cleaning and whitespace removing before actually passing the raw string to the scanner
-        lines = list(filter(lambda e: len(e), [ln.lstrip() for ln in input_str.splitlines()]))
-        for ln, _ in enumerate(lines):
-            lines[ln] = ''.join(lines[ln])
-        clean_str: str = '\n'.join(lines)
+        clean_str: str = self._clean_string(input_str)
 
         self._scanner.scan_str(clean_str)
         self._cur_token: Token = self._next_token()
         self._statements: [StatementNode] = []
+
+        # Import statements
+        imports = []
+        while self._cur_token not in [None, TokenType.EOF] and self._cur_token.ttype == TokenType.IMPORT:
+            imports.append(self._parse_import())
+
+        # Remove import statements from clean_str
+        clean_str = re.sub(r'import +\"[^\"]+\"', ' ', clean_str, flags=re.MULTILINE)
+
+        if imports:
+            with open('config.yml') as file:
+                C_CONFIG = yaml.load(file, Loader=yaml.FullLoader)
+
+            if C_CONFIG['stdlib_dir'] is None:
+                raise FileNotFoundError('No stdlib directory given')
+
+            for i_file in imports:
+                base_file = os.path.splitext(os.path.basename(i_file.file))[0]
+                # Walk through all dirs (and config.additional_dirs) if file found there
+                found_file = False
+                for (dirpath, dirnames, filenames) in os.walk(C_CONFIG['stdlib_dir']):
+                    for filename in filenames:
+                        c_filename = os.path.splitext(filename)[0]
+                        if c_filename == base_file:
+                            found_file = True
+                            with open(os.sep.join([dirpath, filename]), 'r') as f:
+                                clean_str = self._clean_string(f.read()) + clean_str
+                            break
+                if not found_file:
+                    raise FileNotFoundError('File {f} not found'.format(f=base_file))
+
+            self._scanner.scan_str(clean_str)
+            self._cur_token: Token = self._next_token()
+
         return self._parse_statements()
 
     def _accept(self, ttype: TokenType):
@@ -448,6 +497,13 @@ class Parser:
         else:
             self._fail('Invalid external type {t}'.format(t=tmp_type))
 
+        return node
+
+    def _parse_import(self) -> ImportNode:
+        node = ImportNode()
+        self._accept(TokenType.IMPORT)
+        node.file = str(self._cur_token.value)
+        self._accept(TokenType.STRING)
         return node
 
     def _parse_expression(self) -> ExpressionNode:

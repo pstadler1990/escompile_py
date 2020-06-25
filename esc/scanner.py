@@ -56,6 +56,8 @@ class TokenType(enum.Enum):
     # External / C-API
     API_EXTERN = 400
 
+    IMPORT = 600
+
     EOF = 999
 
 
@@ -291,6 +293,8 @@ class Scanner:
                 return Token(TokenType.PROC_RETURN, cn=self._char_offset)
             elif tmp_str == 'extern':
                 return Token(TokenType.API_EXTERN, cn=self._char_offset)
+            elif tmp_str == 'import':
+                return Token(TokenType.IMPORT, cn=self._char_offset)
         elif slen == 7:
             if tmp_str == 'forever':
                 return Token(TokenType.LOOP_FOREVER, cn=self._char_offset)

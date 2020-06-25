@@ -2,7 +2,8 @@ import enum
 import struct
 from typing import Union
 from esc.parser import Node, Parser, AssignmentNode, TermNode, OpType, ValueNode, ValueType, IfNode, ExpressionNode, \
-    CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode, ProcSubReturnNode, ProcFuncNode, ExternApiNode
+    CallNode, LoopNode, ExitNode, ConditionPos, ArrayNode, ProcSubNode, ProcSubReturnNode, ProcFuncNode, ExternApiNode, \
+    ImportNode
 from abc import ABC
 
 E_MAX_LOCALS = 99
@@ -647,6 +648,9 @@ class CodeGenerator(NodeVisitor):
         # Add identifier to list of external identifiers
         if node.identifier not in self.external_symbols:
             self.external_symbols.append(node.identifier)
+
+    def visit_ImportNode(self, node: ImportNode, parent: Node = None):
+        pass
 
     def _fail(self, msg: str = ''):
         raise Exception('COMPILER ERROR,{msg}'.format(msg=msg))

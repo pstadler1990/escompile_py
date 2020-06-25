@@ -1,3 +1,4 @@
 debug: False
+stdlib_dir: 'C:\Users\patrick.stadler\Desktop\my_cool_scripts\stdlib'
 script_dirs: ['C:\Users\patrick.stadler\Desktop\my_cool_scripts']
 vm_exe: 'C:\\Users\\patrick.stadler\\CLionProjects\\es_vm\\cmake-build-debug\\es_vm.exe'
