@@ -375,7 +375,8 @@ class CodeGenerator(NodeVisitor):
             if parent:
                 op = 'pop'
                 if isinstance(parent, AssignmentNode):
-                    op = 'push'
+                    if parent.modify:
+                        op = 'push'
 
                 try:
                     tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.identifier, stype=VariableSymbol,
@@ -649,7 +650,7 @@ class CodeGenerator(NodeVisitor):
 
     def visit_ProcSubReturnNode(self, node: ProcSubReturnNode, parent: Node = None):
         if node.ret_arg is not None:
-            self.visit(node.ret_arg)
+            self.visit(node.ret_arg, parent=node)
             self._emit_operation(OP.JFS, arg1=1)  # TODO: more than 1 values returned from stack?
         else:
             # no return value

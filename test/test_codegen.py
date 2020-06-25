@@ -91,6 +91,29 @@ class TestCodegen(unittest.TestCase):
         self.assertTrue(lines[2] == 'i after: 2.000000')
         self.assertTrue(lines[3] == 'i after: 3.000000')
 
+    def test_array_assign_element_to_new_variable(self):
+        p = Parser()
+        c = CodeGenerator()
+        statements = p.parse('''
+                            let a = [1]
+                            let out = a[0]
+                            print("out: " + out)
+                            ''')
+
+        for statement in statements:
+            c.generate(statement)
+
+        fbytes = c.finalize()
+
+        # CALL vm.exe with bytes_out -b option
+        sub = subprocess.Popen(
+            ["C:\\Users\\patrick.stadler\\CLionProjects\\es_vm\\cmake-build-debug\\es_vm.exe", "-b"] + fbytes,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.system('taskkill /f /im es_vm.exe')
+        out, err = sub.communicate()
+        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        self.assertTrue(lines[0] == 'out: 1.000000')
+
     def test_ifelseifelse(self):
         p = Parser()
         c = CodeGenerator()
