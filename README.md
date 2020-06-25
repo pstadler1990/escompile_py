@@ -228,6 +228,15 @@ and is defined as:
 | String | String length |
 | Array | Number of array elements |
 
+#### Comments
+Use the `#` character to indicate a comment. Comments will always reach until the end of the current line.
+
+```
+# This is a comment, assign the number 42 to a
+let a = 42 # this wont be parsed a = 43
+print("" + a)
+```
+
 ---
 ### Code Examples
 #### Number swapping (w/ temporary variable)
