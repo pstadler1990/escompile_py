@@ -2,3 +2,6 @@ venv
 .idea
 esc/__pychache__/
 test/__pychache__/
+/build/main/
+/dist/
+/main.spec
