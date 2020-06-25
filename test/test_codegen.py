@@ -427,3 +427,35 @@ class TestCodegen(unittest.TestCase):
         self.assertTrue(lines[5] == 'b is a String')
         self.assertTrue(lines[6] == 'c is a String')
         self.assertTrue(lines[7] == 'd is a Array')
+
+    def test_len(self):
+        p = Parser()
+        c = CodeGenerator()
+        statements = p.parse('''
+                            let a = 42
+                            let b = "Hello World"
+                            let c = [1, 2, 3]
+                            let d = [1, 2, 3, 4, 42, 69]
+                            
+                            print("Len a: " + len(a))
+                            print("Len b: " + len(b))
+                            print("Len c: " + len(c))
+                            print("Len d: " + len(d))
+                            ''')
+
+        for statement in statements:
+            c.generate(statement)
+
+        fbytes = c.finalize()
+
+        # CALL vm.exe with bytes_out -b option
+        sub = subprocess.Popen(
+            ["C:\\Users\\patrick.stadler\\CLionProjects\\es_vm\\cmake-build-debug\\es_vm.exe", "-b"] + fbytes,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.system('taskkill /f /im es_vm.exe')
+        out, err = sub.communicate()
+        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        self.assertTrue(lines[0] == 'Len a: 0.000000')
+        self.assertTrue(lines[1] == 'Len b: 11.000000')
+        self.assertTrue(lines[2] == 'Len c: 3.000000')
+        self.assertTrue(lines[3] == 'Len d: 6.000000')
