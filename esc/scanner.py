@@ -120,6 +120,11 @@ class Scanner:
                 self._advance(peek)
                 return Token(TokenType.RPARENT, cn=self._char_offset)
 
+            if self._cur_char == '#':
+                while self._cur_char is not '\n':
+                    self._advance(peek)
+                self._advance()
+
             if self._cur_char == '+':
                 self._advance(peek)
                 return Token(TokenType.PLUS, cn=self._char_offset)
