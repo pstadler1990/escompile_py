@@ -73,7 +73,7 @@ if __name__ == '__main__':
             out = os.sep.join([file_dir, args.output])
             with open(out, 'w') as f:
                 for b in fbytes:
-                    f.write(b + " ")
+                    f.write(b + ", ")
             print("** WROTE {b} bytes to file {f}".format(b=len(fbytes), f=out))
 
         # Execute parsed script?
