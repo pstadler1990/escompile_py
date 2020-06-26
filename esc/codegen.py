@@ -354,7 +354,7 @@ class CodeGenerator(NodeVisitor):
                 else:
                     self._emit_operation(OP.POPL, arg1=tmp_index)
                 try:
-                    if parent.value_type == ValueType.ARRAYELEMENT:
+                    if isinstance(parent, ValueNode) and parent.value_type == ValueType.ARRAYELEMENT:
                         self._emit_operation(OP.PUSHAS)
                 except AttributeError:
                     pass
@@ -370,7 +370,7 @@ class CodeGenerator(NodeVisitor):
         elif node.value_type == ValueType.NUMBER:
             # Initialize with constant
             try:
-                if parent.value_type == ValueType.ARRAYELEMENT:
+                if isinstance(parent, ValueNode) and parent.value_type == ValueType.ARRAYELEMENT:
                     self._emit_operation(OP.PUSHA, arg1=node.value)
                 else:
                     self._emit_operation(OP.PUSH, arg1=node.value)
@@ -387,8 +387,8 @@ class CodeGenerator(NodeVisitor):
             if parent:
                 op = 'pop'
                 if isinstance(parent, AssignmentNode):
-                    if parent.modify:
-                     op = 'push'
+                    if parent.modify and node == parent.left:
+                        op = 'push'
 
                 try:
                     tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.identifier, stype=VariableSymbol,

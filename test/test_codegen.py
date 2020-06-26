@@ -482,3 +482,37 @@ class TestCodegen(unittest.TestCase):
         self.assertTrue(lines[1] == 'Len b: 11.000000')
         self.assertTrue(lines[2] == 'Len c: 3.000000')
         self.assertTrue(lines[3] == 'Len d: 6.000000')
+
+    def test_max_func(self):
+        p = Parser()
+        c = CodeGenerator()
+        statements = p.parse('''
+                            func max(arr)
+                                let __alen = len(arr)
+                                let __m = arr[0]
+                                let __i = 0
+                                repeat
+                                    if(arr[__i] > __m) then
+                                        __m = arr[__i]
+                                    endif
+                                    __i = __i + 1
+                                until __i = __alen
+                                return __m
+                            endfunc
+                            
+                            print("Max: " + max([1,2,3,4]))
+                            ''')
+
+        for statement in statements:
+            c.generate(statement)
+
+        fbytes = c.finalize()
+
+        # CALL vm.exe with bytes_out -b option
+        sub = subprocess.Popen(
+            ["C:\\Users\\patrick.stadler\\CLionProjects\\es_vm\\cmake-build-debug\\es_vm.exe", "-b"] + fbytes,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.system('taskkill /f /im es_vm.exe')
+        out, err = sub.communicate()
+        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        self.assertTrue(lines[0] == 'Max: 4.000000')
