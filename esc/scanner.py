@@ -121,7 +121,7 @@ class Scanner:
                 return Token(TokenType.RPARENT, cn=self._char_offset)
 
             if self._cur_char == '#':
-                while self._cur_char is not '\n':
+                while self._cur_char not in [None, '\n']:
                     self._advance(peek)
                 self._advance()
                 continue
