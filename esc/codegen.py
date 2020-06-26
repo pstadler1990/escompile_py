@@ -573,16 +573,16 @@ class CodeGenerator(NodeVisitor):
         if n == 'print':
             # Print signature:
             # PUSH STRING <param> | BUILD STRING <param> onto STACK
-            self.visit(node.args[0])
+            self.visit(node.args[0], parent=node)
             # CALL __print
             self._emit_operation(OP.PRINT)
         elif n == 'argtype':
             # CALL __argtype
-            self.visit(node.args[0])
+            self.visit(node.args[0], parent=node)
             self._emit_operation(OP.ARGTYPE)
         elif n == 'len':
             # CALL __len
-            self.visit(node.args[0])
+            self.visit(node.args[0], parent=node)
             self._emit_operation(OP.LEN)
         else:
             try:
