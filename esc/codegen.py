@@ -108,17 +108,42 @@ class CodeGenerator(NodeVisitor):
     def generate(self, root: Node):
         return self.visit(root)
 
-    def finalize(self):
+    def finalize(self, rle: bool = False):
         # merge multiple CONCAT ops
         out_stream = []
         for b in self.bytes_out:
             out_stream.append(str(b))
 
+        tmp_len = len(out_stream)
+        if rle:
+            out_stream = self._rle(out_stream)
+
+        print(out_stream)
         print(
-            "** STATS: | Bytes: {b} | Max scope: {s} | Max arrays: {a} | Max symbols: {sy} | Longest string: {slen} **".format(
-                b=len(out_stream), s=self.stats['max_scope'], a=self.stats['max_arrays'], sy=self.stats['max_symbols'],
+            "** STATS: | Bytes: {b} / ASCII: {ai} | Max scope: {s} | Max arrays: {a} | Max symbols: {sy} | Longest string: {slen} **".format(
+                b=tmp_len, ai=len(out_stream), s=self.stats['max_scope'], a=self.stats['max_arrays'], sy=self.stats['max_symbols'],
                 slen=self.stats['max_strlen']))
         return out_stream
+
+    @staticmethod
+    def _rle(in_stream: []):
+        out_stream = ""
+        last_b = None
+        b_cnt = 0
+        i = 0
+        while i < len(in_stream):
+            b = in_stream[i]
+            if i > 0 and b != last_b:
+                # out_stream.append([b_cnt, last_b])
+                out_stream += "{c},{b},".format(c=b_cnt, b=last_b)
+                b_cnt = 0
+            last_b = b
+            b_cnt += 1
+            i = i + 1
+        if b_cnt > 0:
+            # out_stream.append([b_cnt, last_b])
+            out_stream += "{c},{b},".format(c=b_cnt, b=last_b)
+        return out_stream.rstrip(',')
 
     def _format_arg(self, bc, op: OP = None):
         if op is not None and op.value in [OP.JMP.value, OP.JZ.value]:

@@ -71,9 +71,9 @@ if __name__ == '__main__':
         for statement in statements:
             c.generate(statement)
 
-        print(c.bytes_out)
+        # print(c.bytes_out)
         print(c.format())
-        fbytes = c.finalize()
+        fbytes = c.finalize(rle=C_CONFIG['use_rle'])
 
         if args.output:
             # Write file to output
@@ -82,8 +82,11 @@ if __name__ == '__main__':
             else:
                 out = os.sep.join([file_dir, args.output])
             with open(out, 'w') as f:
-                for b in fbytes:
-                    f.write(b + ", ")
+                if C_CONFIG['use_rle']:
+                    f.write(fbytes)
+                else:
+                    for b in fbytes:
+                        f.write(b + ",")
             print("** WROTE {b} bytes to file {f}".format(b=len(fbytes), f=out))
 
         # Execute parsed script?

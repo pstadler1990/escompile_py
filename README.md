@@ -14,6 +14,10 @@ See `config.yml` for configurable arguments.
 | `debug` | `False` | Enable debug mode (mostly stack tracing) |
 | `script_dirs` | `[]` | Provide all directories where the `evoscript` files are to be searched. If `None`, no relative file input is possible. |
 | `vm_exe` | - | The `es_vm` executable file (only required if you want to pass the `-e` option) | 
+| `use_rle` | `False` | Enable *run-length encoding* (RLE) in the output stream (compression) |
+
+If the `use_rle` option is set to `True`, the output stream is compressed using RLE. The `vm` needs to support RLE to be able to load
+a RLE encoded stream!
 
 ## CLI
 The package provides a `CLI` (command line interface) for the most tasks. 
