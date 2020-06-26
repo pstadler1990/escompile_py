@@ -200,28 +200,37 @@ class Parser:
         clean_str = re.sub(r'import +\"[^\"]+\"', ' ', clean_str, flags=re.MULTILINE)
 
         if imports:
-            if self.lib_dir is None or not len(self.lib_dir):
-                raise FileNotFoundError('No stdlib directory given')
-
+            with open('config.yml') as file:
+                C_CONFIG = yaml.load(file, Loader=yaml.FullLoader)
             for i_file in imports:
                 base_file = os.path.splitext(os.path.basename(i_file.file))[0]
                 # Walk through all dirs (and config.additional_dirs) if file found there
                 found_file = False
-                for (dirpath, dirnames, filenames) in os.walk(self.lib_dir):
-                    for filename in filenames:
-                        c_filename = os.path.splitext(filename)[0]
-                        if c_filename == base_file:
-                            found_file = True
-                            with open(os.sep.join([dirpath, filename]), 'r') as f:
-                                clean_str = self._clean_string(f.read()) + clean_str
-                            break
+                dirs = [self.lib_dir]
+                dirs.extend(C_CONFIG['script_dirs'])
+                for d in dirs:
+                    for (dirpath, dirnames, filenames) in os.walk(d):
+                        for filename in filenames:
+                            c_filename = os.path.splitext(filename)[0]
+                            if not found_file and c_filename == base_file:
+                                found_file = True
+                                with open(os.sep.join([dirpath, filename]), 'r') as f:
+                                    clean_str = self._clean_string(f.read()) + clean_str
+                                break
+                    if found_file:
+                        break
                 if not found_file:
                     raise FileNotFoundError('File {f} not found'.format(f=base_file))
 
+            return self.parse(clean_str)
+        else:
+            self._scanner = Scanner()
+            self._cur_token = None
+            self._prev_token = None
+            self._statements: [StatementNode] = []
             self._scanner.scan_str(clean_str)
             self._cur_token: Token = self._next_token()
-
-        return self._parse_statements()
+            return self._parse_statements()
 
     def _accept(self, ttype: TokenType):
         if self._cur_token is not None:
