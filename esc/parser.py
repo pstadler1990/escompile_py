@@ -161,13 +161,14 @@ class ParseSyntaxException(Exception):
 
 
 class Parser:
-    def __init__(self):
+    def __init__(self, stdlib_dir: str = ''):
         self._scanner = Scanner()
         self._cur_token = None
         self._prev_token = None
         self._statements: [StatementNode] = []
         self._loops = 0
         self._cur_proc_is_func: bool = False
+        self.lib_dir = stdlib_dir
 
     def _next_token(self, peek: bool = False):
         if self._cur_token is not None:
@@ -199,17 +200,14 @@ class Parser:
         clean_str = re.sub(r'import +\"[^\"]+\"', ' ', clean_str, flags=re.MULTILINE)
 
         if imports:
-            with open('config.yml') as file:
-                C_CONFIG = yaml.load(file, Loader=yaml.FullLoader)
-
-            if C_CONFIG['stdlib_dir'] is None:
+            if self.lib_dir is None or not len(self.lib_dir):
                 raise FileNotFoundError('No stdlib directory given')
 
             for i_file in imports:
                 base_file = os.path.splitext(os.path.basename(i_file.file))[0]
                 # Walk through all dirs (and config.additional_dirs) if file found there
                 found_file = False
-                for (dirpath, dirnames, filenames) in os.walk(C_CONFIG['stdlib_dir']):
+                for (dirpath, dirnames, filenames) in os.walk(self.lib_dir):
                     for filename in filenames:
                         c_filename = os.path.splitext(filename)[0]
                         if c_filename == base_file:

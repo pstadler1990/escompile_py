@@ -22,6 +22,8 @@ parser.add_argument('-p', '--parse', action='store_true')
 parser.add_argument('-i', '--input', type=str)
 parser.add_argument('-o', '--output', type=str)
 parser.add_argument('-e', '--execute', action='store_true')
+parser.add_argument('-l', '--stdlib', type=str)
+parser.add_argument('-v', '--vm', type=str)
 args = parser.parse_args()
 
 file_dir = None
@@ -55,7 +57,12 @@ if __name__ == '__main__':
         print("** No file option given, exit")
         sys.exit(-1)
 
-    p = Parser()
+    if args.stdlib:
+        lib_dir = args.stdlib
+    else:
+        lib_dir = C_CONFIG['stdlib_dir']
+
+    p = Parser(stdlib_dir=lib_dir)
     statements = p.parse(file_handle)
 
     if not args.parse:
@@ -70,7 +77,10 @@ if __name__ == '__main__':
 
         if args.output:
             # Write file to output
-            out = os.sep.join([file_dir, args.output])
+            if os.path.isabs(args.output):
+                out = args.output
+            else:
+                out = os.sep.join([file_dir, args.output])
             with open(out, 'w') as f:
                 for b in fbytes:
                     f.write(b + ", ")
@@ -78,7 +88,11 @@ if __name__ == '__main__':
 
         # Execute parsed script?
         if args.execute:
-            if C_CONFIG['vm_exe'] and os.path.exists(C_CONFIG['vm_exe']):
+            if args.vm:
+                vm_dir = args.vm
+            else:
+                vm_dir = C_CONFIG['vm_exe']
+            if os.path.exists(vm_dir):
                 # CALL vm.exe with bytes_out -b option
-                subprocess.Popen([C_CONFIG['vm_exe'], "-b"] + fbytes)
+                subprocess.Popen([vm_dir, "-b"] + fbytes)
                 os.system('taskkill /f /im es_vm.exe')

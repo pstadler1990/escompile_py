@@ -24,6 +24,10 @@ The package provides a `CLI` (command line interface) for the most tasks.
 | `-p`   | `--parse` | - | Parse only option. Use this switch to skip code generation. Useful for error handling in an external text editor |
 | `-e`   | `--execute` | - | Execute the parsed script with the configured `es_vm` executable. Can be useful for debugging small scripts, but doesn't always reflect the behaviour on the target platform (i.e. ARM). |
 | `-o`   | `--output` | Filename or absolute path to file | The output file (optional) |
+| `-l`   | `--stdlib` | Absolute path to directory |  Path to `evoscript` standard library. Only required if imported in the user scripts |
+| `-v`   | `--vm` | Absolute path to directory | Path to the `es_vm` executable. Only required when passing the `-e` option. |
+
+**Note** You only need to specify the `-l` and `-v` options, if these paths are not specified or not applicable in the `config.yml`.
 
 ## Build 
 You can use `pyinstaller` with the `-F` switch to create a standalone executable for the package:
