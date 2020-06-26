@@ -190,6 +190,7 @@ class CodeGenerator(NodeVisitor):
             return r
 
     def format(self):
+        # TODO: Implement single byte OPs
         lc: int = 0
         bc: int = 0
 
@@ -736,7 +737,8 @@ class CodeGenerator(NodeVisitor):
                 else:
                     self._fail('Argument 2 is too large')
 
-        if op != OP.PUSHS:
+        if op not in [OP.NOP, OP.PUSHAS, OP.EQ, OP.LT, OP.GT, OP.LTEQ, OP.GTEQ, OP.NOTEQ, OP.ADD, OP.NEG, OP.SUB,
+                      OP.MUL, OP.DIV, OP.AND, OP.OR, OP.NOT, OP.MOD, OP.PRINT, OP.ARGTYPE, OP.LEN, OP.PUSHS]:
             while len(bytes_out) < 9:
                 bytes_out.append(0x00)
             if len(bytes_out) != 9:

@@ -2,7 +2,7 @@ import os
 import subprocess
 import unittest
 
-from esc.codegen import CodeGenerator
+from esc.codegen import CodeGenerator, OP
 from esc.parser import Parser
 
 
@@ -26,7 +26,8 @@ class TestCodegen(unittest.TestCase):
 
         # CALL vm.exe with bytes_out -b option
         sub = subprocess.Popen(
-            ["C:\\Users\\patrick.stadler\\CLionProjects\\es_vm\\cmake-build-debug\\es_vm.exe", "-b"] + fbytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            ["C:\\Users\\patrick.stadler\\CLionProjects\\es_vm\\cmake-build-debug\\es_vm.exe", "-b"] + fbytes,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
         lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
@@ -516,3 +517,45 @@ class TestCodegen(unittest.TestCase):
         out, err = sub.communicate()
         lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
         self.assertTrue(lines[0] == 'Max: 4.000000')
+
+    def test_single_op_map(self):
+        sb_map = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                  0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
+
+        self.assertTrue(sum(sb_map) == 20)
+
+        self.assertTrue(sb_map[OP.PUSHAS.value] == 1)
+        self.assertTrue(sb_map[OP.EQ.value] == 1)
+        self.assertTrue(sb_map[OP.LT.value] == 1)
+        self.assertTrue(sb_map[OP.GT.value] == 1)
+        self.assertTrue(sb_map[OP.LTEQ.value] == 1)
+        self.assertTrue(sb_map[OP.GTEQ.value] == 1)
+        self.assertTrue(sb_map[OP.NOTEQ.value] == 1)
+        self.assertTrue(sb_map[OP.ADD.value] == 1)
+        self.assertTrue(sb_map[OP.NEG.value] == 1)
+        self.assertTrue(sb_map[OP.SUB.value] == 1)
+        self.assertTrue(sb_map[OP.MUL.value] == 1)
+        self.assertTrue(sb_map[OP.DIV.value] == 1)
+        self.assertTrue(sb_map[OP.AND.value] == 1)
+        self.assertTrue(sb_map[OP.OR.value] == 1)
+        self.assertTrue(sb_map[OP.NOT.value] == 1)
+        self.assertTrue(sb_map[OP.MOD.value] == 1)
+        self.assertTrue(sb_map[OP.PRINT.value] == 1)
+        self.assertTrue(sb_map[OP.ARGTYPE.value] == 1)
+        self.assertTrue(sb_map[OP.LEN.value] == 1)
+        self.assertTrue(sb_map[OP.NOP.value] == 1)
+
+        self.assertTrue(sb_map[OP.PUSHG.value] == 0)
+        self.assertTrue(sb_map[OP.POPG.value] == 0)
+        self.assertTrue(sb_map[OP.PUSHL.value] == 0)
+        self.assertTrue(sb_map[OP.POPL.value] == 0)
+        self.assertTrue(sb_map[OP.PUSH.value] == 0)
+        self.assertTrue(sb_map[OP.DATA.value] == 0)
+        self.assertTrue(sb_map[OP.PUSHA.value] == 0)
+        self.assertTrue(sb_map[OP.CONCAT.value] == 0)
+        self.assertTrue(sb_map[OP.JZ.value] == 0)
+        self.assertTrue(sb_map[OP.JMP.value] == 0)
+        self.assertTrue(sb_map[OP.JFS.value] == 0)
+        self.assertTrue(sb_map[OP.JMPFUN.value] == 0)
+        self.assertTrue(sb_map[OP.CALL.value] == 0)

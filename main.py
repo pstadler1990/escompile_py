@@ -72,7 +72,7 @@ if __name__ == '__main__':
             c.generate(statement)
 
         # print(c.bytes_out)
-        print(c.format())
+        # print(c.format())
         fbytes = c.finalize(rle=C_CONFIG['use_rle'])
 
         if args.output:
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                     f.write(fbytes)
                 else:
                     for b in fbytes:
-                        f.write(b + ",")
+                        f.write(b + ", ")
             print("** WROTE {b} bytes to file {f}".format(b=len(fbytes), f=out))
 
         # Execute parsed script?
