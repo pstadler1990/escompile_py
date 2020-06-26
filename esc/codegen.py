@@ -194,10 +194,22 @@ class CodeGenerator(NodeVisitor):
                 lc += 1
 
     def _symbol_exists(self, symbol: str, stype, scope: int = 0):
+        # try:
+        #     return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)),  # ... and type(s) is stype
+        #                 None) is not None
+        # except TypeError:
+        #     if scope != 0:
+        #         return self._symbol_exists(symbol, stype, scope=0)
+        #     else:
+        #         return False
         try:
-            return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)),  # ... and type(s) is stype
-                        None) is not None
-        except TypeError:
+            sym = next(filter(lambda s: s.name == symbol, self.symbols.get(scope)),
+                       None)  # ... == symbol and type(s) is stype ...
+            sym_index = self.symbols.get(scope).index(sym)
+            return sym_index is not None
+        except:
+            if symbol in self.external_symbols:
+                return True
             if scope != 0:
                 return self._symbol_exists(symbol, stype, scope=0)
             else:
@@ -376,7 +388,7 @@ class CodeGenerator(NodeVisitor):
                 op = 'pop'
                 if isinstance(parent, AssignmentNode):
                     if parent.modify:
-                        op = 'push'
+                     op = 'push'
 
                 try:
                     tmp_symbol, tmp_index, tmp_scope = self._find_symbol(node.identifier, stype=VariableSymbol,
@@ -536,8 +548,8 @@ class CodeGenerator(NodeVisitor):
         self._close_scope()
 
     def visit_ExpressionNode(self, node: ExpressionNode, parent: Node = None):
-        self.visit(node.left)
-        self.visit(node.right)
+        self.visit(node.left, parent=node)
+        self.visit(node.right, parent=node)
 
         if node.op == OpType.AND:
             self._emit_operation(OP.AND)
