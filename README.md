@@ -116,6 +116,20 @@ Use the `const` modifier after a variable assignment to make it a constant:
 | `<`, `>`, `<=`, `>=` | Relational lower / greater |
 | `and`, `or` | Logical and / or |
 
+### Import
+Use the `import` statement at the **beginning** of a file to import another file into the current script.
+
+You can nest the `import`s, but consider that each import is literally pasted into your script (there is no conditional import at the moment). 
+Program size can increase dramatically!
+
+#### Standard library
+There's a small standard library for `evoscript` that can be `import`ed and used within your script.
+
+```
+import "stdlib"
+```
+
+Ensure to either pass the path to the standard library (refer to the CLI section) or to specify the directory in the `config.yml`.
 
 ### Program flow
 `if` / `elseif` / `else` / `endif` allows structuring the control flow of the program.
