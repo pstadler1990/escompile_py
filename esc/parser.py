@@ -409,7 +409,7 @@ class Parser:
                 # Repeat Until <expr> -> node.left condition is <expr>
                 self._accept(TokenType.LOOP_UNTIL)
                 node.left = self._parse_expression()
-                node.condition_pos = ConditionPos.BOTTOM
+            node.condition_pos = ConditionPos.BOTTOM
         except AttributeError:
             self._fail('Missing loop body')
 
