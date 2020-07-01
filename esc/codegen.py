@@ -190,7 +190,6 @@ class CodeGenerator(NodeVisitor):
             return r
 
     def format(self):
-        # TODO: Implement single byte OPs
         lc: int = 0
         bc: int = 0
 
@@ -228,14 +227,6 @@ class CodeGenerator(NodeVisitor):
                 lc += 1
 
     def _symbol_exists(self, symbol: str, stype, scope: int = 0):
-        # try:
-        #     return next(filter(lambda s: s.name == symbol, self.symbols.get(scope)),  # ... and type(s) is stype
-        #                 None) is not None
-        # except TypeError:
-        #     if scope != 0:
-        #         return self._symbol_exists(symbol, stype, scope=0)
-        #     else:
-        #         return False
         try:
             sym = next(filter(lambda s: s.name == symbol, self.symbols.get(scope)),
                        None)  # ... == symbol and type(s) is stype ...
@@ -534,7 +525,6 @@ class CodeGenerator(NodeVisitor):
                 patch_head = patches.pop()
                 self._backpatch(patch_head, endif)
 
-        # TODO: Watch, if these changes will work for every case!
         bytecnt_after_all = len(self.bytes_out)
         for p in range(len(patches)):
             patch_head = patches.pop()
@@ -701,7 +691,7 @@ class CodeGenerator(NodeVisitor):
     def visit_ProcSubReturnNode(self, node: ProcSubReturnNode, parent: Node = None):
         if node.ret_arg is not None:
             self.visit(node.ret_arg, parent=node)
-            self._emit_operation(OP.JFS, arg1=1)  # TODO: more than 1 values returned from stack?
+            self._emit_operation(OP.JFS, arg1=1)
         else:
             # no return value
             self._emit_operation(OP.JFS)
