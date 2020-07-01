@@ -403,7 +403,7 @@ class Parser:
                 v1.value = 1
                 forever_cond.left = v1
                 forever_cond.right = v1
-                forever_cond.op = OpType.NOTEQUALS
+                forever_cond.op = OpType.LTEQ
                 node.left = forever_cond
             elif self._cur_token.ttype == TokenType.LOOP_UNTIL:
                 # Repeat Until <expr> -> node.left condition is <expr>
