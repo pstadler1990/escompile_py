@@ -144,6 +144,7 @@ else
 endif
 ```
 
+#### Repeat loops
 `repeat` .. `until` / `repeat` .. `forever` are used to create loops. 
 ```
 let i = 1
@@ -171,6 +172,24 @@ repeat
 forever
 print("program will continue here")
 ```
+
+#### For loops
+Use the `for`..`next` statements for a traditional `for` loop. You can use the optional `step` keyword to specify the 
+loop's step size (increase loop variable by this value).
+
+```
+print("Loop with step size 1")
+let i = 0
+for i = 1 to 10
+	print("" + i)
+next
+
+print("Loop with step size 2")
+for i = 1 to 10 step 2
+	print("" + i)
+next
+```
+
 
 ### Arrays
 `let my_arr = [1, 2, 2+1, 42.69]` defines an array with 4 elements (last index is 3!). To access an array's specific index,

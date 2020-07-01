@@ -261,6 +261,7 @@ class Parser:
         while t in [TokenType.LET,
                     TokenType.BLOCK_IF,
                     TokenType.LOOP_REPEAT,
+                    TokenType.LOOP_FOR,
                     TokenType.IDENTIFIER,
                     TokenType.LOOP_BREAK,
                     TokenType.PROC_SUB,
@@ -273,6 +274,8 @@ class Parser:
                 statements.append(self._parse_if())
             elif t == TokenType.LOOP_REPEAT:
                 statements.append(self._parse_loop())
+            elif t == TokenType.LOOP_FOR:
+                statements.append(self._parse_for_loop())
             elif t == TokenType.LOOP_BREAK:
                 statements.append(self._parse_exit())
             elif t == TokenType.IDENTIFIER:
@@ -411,6 +414,57 @@ class Parser:
             self._fail('Missing loop body')
 
         self._loops -= 1
+        return node
+
+    def _parse_for_loop(self) -> LoopNode:
+        # for i to 10 [step n]
+        #   print("" + i)
+        # next
+        node = LoopNode()
+        self._loops += 1
+        self._accept(TokenType.LOOP_FOR)
+
+        tmp_v1 = self._parse_statements()
+        if len(tmp_v1):
+            tmp_v1 = tmp_v1[0]
+            if not isinstance(tmp_v1, AssignmentNode):
+                self._fail('Invalid loop assignment')
+        else:
+            self._fail('Invalid loop expression')
+
+        self._accept(TokenType.LOOP_TO)
+
+        forever_cond = ExpressionNode()
+        forever_cond.left = tmp_v1.left
+        forever_cond.right = self._parse_expression()
+        forever_cond.op = OpType.LTEQ
+        node.left = []
+        node.left.append(tmp_v1)
+        node.left.append(forever_cond)
+
+        # Optional step size
+        if self._cur_token.ttype == TokenType.LOOP_STEP:
+            self._accept(TokenType.LOOP_STEP)
+            v_node = self._parse_expression()
+        else:
+            v_node = ValueNode(value_type=ValueType.NUMBER)
+            v_node.value = 1
+
+        # Body
+        node.right = self._parse_statements()
+
+        t_node = TermNode()
+        t_node.left = node.left[0].left
+        t_node.right = v_node
+        t_node.op = OpType.ADD
+
+        a_node = AssignmentNode(modify=True)
+        a_node.left = node.left[0].left
+        a_node.right = t_node
+
+        node.right.append(a_node)
+
+        self._accept(TokenType.LOOP_NEXT)
         return node
 
     def _parse_exit(self) -> ExitNode:

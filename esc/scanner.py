@@ -40,6 +40,10 @@ class TokenType(enum.Enum):
     LOOP_FOREVER = 51
     LOOP_BREAK = 52
     LOOP_UNTIL = 53
+    LOOP_FOR = 54
+    LOOP_TO = 55
+    LOOP_STEP = 56
+    LOOP_NEXT = 57
 
     LOG_NOT = 60
     LOG_AND = 61
@@ -267,6 +271,8 @@ class Scanner:
                 return Token(TokenType.BLOCK_IF, cn=self._char_offset)
             elif tmp_str == 'or':
                 return Token(TokenType.LOG_OR, cn=self._char_offset)
+            elif tmp_str == 'to':
+                return Token(TokenType.LOOP_TO, cn=self._char_offset)
         elif slen == 3:
             if tmp_str == 'let':
                 return Token(TokenType.LET, cn=self._char_offset)
@@ -276,6 +282,8 @@ class Scanner:
                 return Token(TokenType.MODULO, cn=self._char_offset)
             elif tmp_str == 'sub':
                 return Token(TokenType.PROC_SUB, cn=self._char_offset)
+            elif tmp_str == 'for':
+                return Token(TokenType.LOOP_FOR, cn=self._char_offset)
         elif slen == 4:
             if tmp_str == 'then':
                 return Token(TokenType.BLOCK_THEN, cn=self._char_offset)
@@ -285,6 +293,10 @@ class Scanner:
                 return Token(TokenType.LOOP_BREAK, cn=self._char_offset)
             elif tmp_str == 'func':
                 return Token(TokenType.PROC_FUNC, cn=self._char_offset)
+            elif tmp_str == 'next':
+                return Token(TokenType.LOOP_NEXT, cn=self._char_offset)
+            elif tmp_str == 'step':
+                return Token(TokenType.LOOP_STEP, cn=self._char_offset)
         elif slen == 5:
             if tmp_str == 'endif':
                 return Token(TokenType.BLOCK_ENDIF, cn=self._char_offset)

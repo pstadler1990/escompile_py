@@ -209,10 +209,18 @@ class CodeGenerator(NodeVisitor):
                     print("{lc} @ {adr}\t\t{op}\t\"{str}\"".format(lc=lc, adr=bc, op=OP.value2member_map_[b], str=ostr))
                     bc += strlen + 9
                 else:
-                    arg1 = self._format_arg(bc, op=OP.value2member_map_[b])
+                    if b in [OP.NOP.value, OP.PUSHAS.value, OP.EQ.value, OP.LT.value, OP.GT.value,
+                             OP.LTEQ.value, OP.GTEQ.value, OP.NOTEQ.value, OP.ADD.value, OP.NEG.value,
+                             OP.SUB.value, OP.MUL.value, OP.DIV.value, OP.AND.value, OP.OR.value,
+                             OP.NOT.value, OP.MOD.value, OP.PRINT.value, OP.ARGTYPE.value, OP.LEN.value]:
+                        brem = 1
+                        arg1 = 0
+                    else:
+                        arg1 = self._format_arg(bc, op=OP.value2member_map_[b])
+                        brem = 9
                     # arg2 = self._format_arg(bc + 9)
                     print("{lc} @ {adr}\t\t{op}\t\t{a1}".format(lc=lc, adr=bc, op=OP.value2member_map_[b], a1=arg1))
-                    brem: int = 9
+
                     while brem > 0:
                         brem -= 1
                         bc += 1
@@ -537,11 +545,15 @@ class CodeGenerator(NodeVisitor):
     def visit_LoopNode(self, node: LoopNode, parent: Node = None):
         patches = []
 
-        if node.condition_pos.value == ConditionPos.TOP:
-            self.visit(node.left)
+        if node.condition_pos == ConditionPos.TOP:
+            self.visit(node.left[0])
 
             loop_head = len(self.bytes_out)
             patches.append(loop_head)
+
+            self.visit(node.left[1])
+
+            patches.append(len(self.bytes_out))
             self._emit_operation(OP.JZ, arg1=0xFFFFFFFF)
 
             # Loop body
@@ -549,7 +561,7 @@ class CodeGenerator(NodeVisitor):
             for statement in node.right:
                 self.visit(statement)
 
-            self._emit_operation(OP.JMP, loop_head + 9)
+            self._emit_operation(OP.JMP, loop_head)
 
             patch_head = patches.pop()
             bytecnt_after_all = len(self.bytes_out)

@@ -72,7 +72,7 @@ if __name__ == '__main__':
             c.generate(statement)
 
         # print(c.bytes_out)
-        # print(c.format())
+        print(c.format())
         fbytes = c.finalize(rle=C_CONFIG['use_rle'])
 
         if args.output:
