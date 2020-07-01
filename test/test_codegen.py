@@ -30,7 +30,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'result: 8.000000')
 
     def test_array_iteration(self):
@@ -56,7 +56,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'i: 1.000000')
         self.assertTrue(lines[1] == 'i: 2.000000')
         self.assertTrue(lines[2] == 'i: 3.000000')
@@ -86,7 +86,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'i after: 0.000000')
         self.assertTrue(lines[1] == 'i after: 1.000000')
         self.assertTrue(lines[2] == 'i after: 2.000000')
@@ -112,7 +112,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'out: 1.000000')
 
     def test_ifelseifelse(self):
@@ -175,7 +175,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'a is 42')
         self.assertTrue(lines[1] == 'a is 43')
         self.assertTrue(lines[2] == 'a is 44')
@@ -207,7 +207,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'Now jump into the procedure')
         self.assertTrue(lines[1] == '5.000000')
         self.assertTrue(lines[2] == '4.000000')
@@ -240,7 +240,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         for ln in lines:
             self.assertTrue(ln == 'Hello')
 
@@ -269,7 +269,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'before return statement')
         self.assertTrue(lines[1] == 'after subroutine')
 
@@ -299,7 +299,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == '10! = 3628800.000000')
 
     def test_recursive_pow(self):
@@ -330,7 +330,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'pow 2.000000^8.000000 -> 256.000000')
 
     def test_recursive_fibonacci(self):
@@ -358,7 +358,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'a: 610.000000')
 
     def test_recursive_func_calls(self):
@@ -391,7 +391,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'n: 10.000000 m: 99.000000')
         self.assertTrue(lines[1] == 'n is now: 10.000000')
         self.assertTrue(lines[2] == 'result: 20.000000')
@@ -442,7 +442,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'Argtype a: 10.000000')
         self.assertTrue(lines[1] == 'Argtype b: 20.000000')
         self.assertTrue(lines[2] == 'Argtype c: 20.000000')
@@ -478,7 +478,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'Len a: 0.000000')
         self.assertTrue(lines[1] == 'Len b: 11.000000')
         self.assertTrue(lines[2] == 'Len c: 3.000000')
@@ -515,7 +515,7 @@ class TestCodegen(unittest.TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.system('taskkill /f /im es_vm.exe')
         out, err = sub.communicate()
-        lines = [s.decode("utf-8") for s in out.splitlines()[1:]]
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
         self.assertTrue(lines[0] == 'Max: 4.000000')
 
     def test_single_op_map(self):
