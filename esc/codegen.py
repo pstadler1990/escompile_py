@@ -629,7 +629,7 @@ class CodeGenerator(NodeVisitor):
 
                 for arg in range(proc.args):
                     try:
-                        self.visit(node.args[arg])
+                        self.visit(node.args[arg], parent=node)
                         # self._emit_operation(OP.PUSHL, arg)
                     except IndexError:
                         self._fail(
