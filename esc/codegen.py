@@ -108,7 +108,7 @@ class CodeGenerator(NodeVisitor):
     def generate(self, root: Node):
         return self.visit(root)
 
-    def finalize(self, rle: bool = False):
+    def finalize(self, rle: bool = False, poutsize=None):
         # merge multiple CONCAT ops
         out_stream = []
         for b in self.bytes_out:
@@ -121,8 +121,14 @@ class CodeGenerator(NodeVisitor):
         print(out_stream)
         print(
             "** STATS: | Bytes: {b} / ASCII: {ai} | Max scope: {s} | Max arrays: {a} | Max symbols: {sy} | Longest string: {slen} **".format(
-                b=tmp_len, ai=len(out_stream), s=self.stats['max_scope'], a=self.stats['max_arrays'], sy=self.stats['max_symbols'],
+                b=tmp_len, ai=len(out_stream), s=self.stats['max_scope'], a=self.stats['max_arrays'],
+                sy=self.stats['max_symbols'],
                 slen=self.stats['max_strlen']))
+
+        if poutsize:
+            if tmp_len > poutsize:
+                self._fail('Output stream exceeds maximal data segment size of target ({a} given / {b} available)'.format(a=tmp_len, b=poutsize))
+                return
         return out_stream
 
     @staticmethod
@@ -309,7 +315,8 @@ class CodeGenerator(NodeVisitor):
             if not self._symbol_exists(node.left.value, stype=VariableSymbol, scope=self.scope):
                 self._fail("Symbol {s} not found".format(s=node.left.value))
         else:
-            self._insert_symbol(symbol=VariableSymbol(name=node.left.value, value=value, const=node.is_const), scope=self.scope)
+            self._insert_symbol(symbol=VariableSymbol(name=node.left.value, value=value, const=node.is_const),
+                                scope=self.scope)
 
         var, varid, varscope = self._find_symbol(node.left.value, stype=VariableSymbol, scope=self.scope)
 

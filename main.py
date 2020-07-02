@@ -24,6 +24,9 @@ parser.add_argument('-o', '--output', type=str)
 parser.add_argument('-e', '--execute', action='store_true')
 parser.add_argument('-l', '--stdlib', type=str)
 parser.add_argument('-v', '--vm', type=str)
+# Compiler specific limits for pre-executional boundary checking (optional)
+parser.add_argument('-vmos', '--vmoutsize', type=int)
+
 args = parser.parse_args()
 
 file_dir = None
@@ -73,7 +76,7 @@ if __name__ == '__main__':
 
         # print(c.bytes_out)
         print(c.format())
-        fbytes = c.finalize(rle=C_CONFIG['use_rle'])
+        fbytes = c.finalize(rle=C_CONFIG['use_rle'], poutsize=args.vmoutsize)
 
         if args.output:
             # Write file to output
