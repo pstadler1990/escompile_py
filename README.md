@@ -33,7 +33,7 @@ The package provides a `CLI` (command line interface) for the most tasks.
 | `-vmos` | `--vmoutsize` | `n` bytes | Hard coded maximal data segment buffer of target application (VM). Can be passed for boundary checking |
 
 
-**Note** You only need to specify the `-l` and `-v` options, if these paths are not specified or not applicable in the `config.yml`.
+**Note** You only need to specify the `-l` and `-v` options if these paths are not specified or not applicable in the `config.yml`.
 
 ## Build 
 You can use `pyinstaller` with the `-F` switch to create a standalone executable for the package:
