@@ -678,3 +678,24 @@ print("Len d: " + len(d))
 > Len c: 3.000000
 > Len d: 6.000000
 ```
+
+#### 100 Doors problem
+```
+# 100 Doors problem
+# http://rosettacode.org/wiki/100_doors
+let t = array(101)
+let i = 0
+let j = 0
+for i = 1 to 100
+	for j = i to 100 step i
+		let d = t[j]
+		t[j] = !d
+	next
+next
+
+for i = 1 to 100
+	if(t[i] = 1) then
+		print("" + i)
+	endif
+next 
+```
