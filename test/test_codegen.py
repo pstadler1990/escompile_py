@@ -559,3 +559,43 @@ class TestCodegen(unittest.TestCase):
         self.assertTrue(sb_map[OP.JFS.value] == 0)
         self.assertTrue(sb_map[OP.JMPFUN.value] == 0)
         self.assertTrue(sb_map[OP.CALL.value] == 0)
+
+    def test_dimarray(self):
+        p = Parser()
+        c = CodeGenerator()
+        statements = p.parse('''
+                            let t = array(8)
+                            print("len of t: " + len(t))
+                            t[0] = 1
+                            t[1] = 2
+                            t[2] = "this is a string inside the array"
+                            t[3] = 3
+                            t[7] = 99
+                            let i = 0
+                            for i = 0 to len(t)
+                                print("i[" + i + "]: " + t[i])
+                            next
+                            ''')
+
+        for statement in statements:
+            c.generate(statement)
+
+        fbytes = c.finalize()
+
+        # CALL vm.exe with bytes_out -b option
+        sub = subprocess.Popen(
+            ["C:\\Users\\patrick.stadler\\CLionProjects\\es_vm\\cmake-build-debug\\es_vm.exe", "-b"] + fbytes,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.system('taskkill /f /im es_vm.exe')
+        out, err = sub.communicate()
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
+
+        self.assertTrue(lines[0] == 'len of t: 8.000000')
+        self.assertTrue(lines[1] == 'i[0.000000]: 1.000000')
+        self.assertTrue(lines[2] == 'i[1.000000]: 2.000000')
+        self.assertTrue(lines[3] == 'i[2.000000]: this is a string inside the array')
+        self.assertTrue(lines[4] == 'i[3.000000]: 3.000000')
+        self.assertTrue(lines[5] == 'i[4.000000]: 0.000000')
+        self.assertTrue(lines[6] == 'i[5.000000]: 0.000000')
+        self.assertTrue(lines[7] == 'i[6.000000]: 0.000000')
+        self.assertTrue(lines[8] == 'i[7.000000]: 99.000000')

@@ -212,6 +212,16 @@ outputs:
 Hello
 ```
 
+#### Declaration
+Use the `array()` function to declare a new array without initialization (`dim` statement in BASIC).
+
+```
+let arr = array(16)
+print("len of arr: " + len(arr))
+
+> len of arr: 16.000000
+```
+
 ### Procedures
 Procedures are subroutines without any returned value (in contrast to functions). 
 

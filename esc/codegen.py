@@ -48,6 +48,7 @@ class OP(enum.Enum):
     PRINT = 0x50
     ARGTYPE = 0x51
     LEN = 0x52
+    ARRAY = 0x53
 
     @classmethod
     def has(cls, value):
@@ -619,6 +620,10 @@ class CodeGenerator(NodeVisitor):
             # CALL __len
             self.visit(node.args[0], parent=node)
             self._emit_operation(OP.LEN)
+        elif n == 'array':
+            # CALL __array
+            self.visit(node.args[0], parent=node)
+            self._emit_operation(OP.ARRAY)
         else:
             try:
                 proc = self._find_symbol(node.type.value, stype=ProcedureSymbol, scope=0)[0]
