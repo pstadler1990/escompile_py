@@ -599,3 +599,50 @@ class TestCodegen(unittest.TestCase):
         self.assertTrue(lines[6] == 'i[5.000000]: 0.000000')
         self.assertTrue(lines[7] == 'i[6.000000]: 0.000000')
         self.assertTrue(lines[8] == 'i[7.000000]: 99.000000')
+
+    def test_100door_problem(self):
+        p = Parser()
+        c = CodeGenerator()
+        statements = p.parse('''
+                            # 100 Doors problem
+                            # http://rosettacode.org/wiki/100_doors
+                            let t = array(101)
+                            let i = 0
+                            let j = 0
+                            for i = 1 to 100
+                                for j = i to 100 step i
+                                    let d = t[j]
+                                    t[j] = !d
+                                next
+                            next
+                            
+                            for i = 1 to 100
+                                if(t[i] = 1) then
+                                    print("" + i)
+                                endif
+                            next 
+                            ''')
+
+        for statement in statements:
+            c.generate(statement)
+
+        fbytes = c.finalize()
+
+        # CALL vm.exe with bytes_out -b option
+        sub = subprocess.Popen(
+            ["C:\\Users\\patrick.stadler\\CLionProjects\\es_vm\\cmake-build-debug\\es_vm.exe", "-b"] + fbytes,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.system('taskkill /f /im es_vm.exe')
+        out, err = sub.communicate()
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
+
+        self.assertTrue(lines[0] == '1.000000')
+        self.assertTrue(lines[1] == '4.000000')
+        self.assertTrue(lines[2] == '9.000000')
+        self.assertTrue(lines[3] == '16.000000')
+        self.assertTrue(lines[4] == '25.000000')
+        self.assertTrue(lines[5] == '36.000000')
+        self.assertTrue(lines[6] == '49.000000')
+        self.assertTrue(lines[7] == '64.000000')
+        self.assertTrue(lines[8] == '81.000000')
+        self.assertTrue(lines[9] == '100.000000')
