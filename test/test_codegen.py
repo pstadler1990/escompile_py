@@ -646,3 +646,25 @@ class TestCodegen(unittest.TestCase):
         self.assertTrue(lines[7] == '64.000000')
         self.assertTrue(lines[8] == '81.000000')
         self.assertTrue(lines[9] == '100.000000')
+
+    def test_dimarray_simple(self):
+        p = Parser()
+        c = CodeGenerator()
+        statements = p.parse('''
+                            let t = array(32)
+                            print("len of t: " + len(t))
+                            ''')
+
+        for statement in statements:
+            c.generate(statement)
+
+        fbytes = c.finalize()
+
+        # CALL vm.exe with bytes_out -b option
+        sub = subprocess.Popen(
+            ["C:\\Users\\patrick.stadler\\CLionProjects\\es_vm\\cmake-build-debug\\es_vm.exe", "-b"] + fbytes,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.system('taskkill /f /im es_vm.exe')
+        out, err = sub.communicate()
+        lines = [s.decode("utf-8") for s in out.splitlines()[0:]]
+        self.assertTrue(lines[0] == 'len of t: 32.000000')
