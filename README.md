@@ -192,6 +192,8 @@ for i = 1 to 10 step 2
 next
 ```
 
+**Step size must not be a negative number!**
+
 
 ### Arrays
 `let my_arr = [1, 2, 2+1, 42.69]` defines an array with 4 elements (last index is 3!). To access an array's specific index,
