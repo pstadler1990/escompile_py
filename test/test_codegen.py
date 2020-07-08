@@ -572,7 +572,7 @@ class TestCodegen(unittest.TestCase):
                             t[3] = 3
                             t[7] = 99
                             let i = 0
-                            for i = 0 to len(t)
+                            for i = 0 to len(t) - 1
                                 print("i[" + i + "]: " + t[i])
                             next
                             ''')
