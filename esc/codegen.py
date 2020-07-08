@@ -218,7 +218,7 @@ class CodeGenerator(NodeVisitor):
                     if b in [OP.NOP.value, OP.PUSHAS.value, OP.EQ.value, OP.LT.value, OP.GT.value,
                              OP.LTEQ.value, OP.GTEQ.value, OP.NOTEQ.value, OP.ADD.value, OP.NEG.value,
                              OP.SUB.value, OP.MUL.value, OP.DIV.value, OP.AND.value, OP.OR.value,
-                             OP.NOT.value, OP.MOD.value, OP.PRINT.value, OP.ARGTYPE.value, OP.LEN.value]:
+                             OP.NOT.value, OP.MOD.value, OP.PRINT.value, OP.ARGTYPE.value, OP.LEN.value, OP.ARRAY.value]:
                         brem = 1
                         arg1 = 0
                     else:
@@ -612,18 +612,22 @@ class CodeGenerator(NodeVisitor):
             self.visit(node.args[0], parent=node)
             # CALL __print
             self._emit_operation(OP.PRINT)
+            return 1
         elif n == 'argtype':
             # CALL __argtype
             self.visit(node.args[0], parent=node)
             self._emit_operation(OP.ARGTYPE)
+            return 1
         elif n == 'len':
             # CALL __len
             self.visit(node.args[0], parent=node)
             self._emit_operation(OP.LEN)
+            return 1
         elif n == 'array':
             # CALL __array
             self.visit(node.args[0], parent=node)
             self._emit_operation(OP.ARRAY)
+            return 1
         else:
             try:
                 proc = self._find_symbol(node.type.value, stype=ProcedureSymbol, scope=0)[0]
@@ -752,7 +756,7 @@ class CodeGenerator(NodeVisitor):
                     self._fail('Argument 2 is too large')
 
         if op not in [OP.NOP, OP.PUSHAS, OP.EQ, OP.LT, OP.GT, OP.LTEQ, OP.GTEQ, OP.NOTEQ, OP.ADD, OP.NEG, OP.SUB,
-                      OP.MUL, OP.DIV, OP.AND, OP.OR, OP.NOT, OP.MOD, OP.PRINT, OP.ARGTYPE, OP.LEN, OP.PUSHS]:
+                      OP.MUL, OP.DIV, OP.AND, OP.OR, OP.NOT, OP.MOD, OP.PRINT, OP.ARGTYPE, OP.LEN, OP.PUSHS, OP.ARRAY]:
             while len(bytes_out) < 9:
                 bytes_out.append(0x00)
             if len(bytes_out) != 9:

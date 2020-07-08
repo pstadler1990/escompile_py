@@ -180,7 +180,7 @@ class Parser:
         lines = list(filter(lambda e: len(e), [ln.lstrip() for ln in s.splitlines()]))
         for ln, _ in enumerate(lines):
             lines[ln] = ''.join(lines[ln])
-        return '\n'.join(lines)
+        return '\n'.join(lines) + '\n'
 
     def parse(self, input_str: str) -> [StatementNode]:
         # Parse given input string
