@@ -89,7 +89,10 @@ if __name__ == '__main__':
                     f.write(fbytes)
                 else:
                     for b in fbytes:
-                        f.write(b + ", ")
+                        out_f = format(int(b), 'x')
+                        if len(out_f) < 2:
+                            out_f = '0'+out_f
+                        f.write(out_f)
             print("** WROTE {b} bytes to file {f}".format(b=len(fbytes), f=out))
 
         # Execute parsed script?
