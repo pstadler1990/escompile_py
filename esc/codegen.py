@@ -265,11 +265,11 @@ class CodeGenerator(NodeVisitor):
     def _insert_symbol(self, symbol: Symbol, scope: int = 0):
         try:
             self.symbols.get(scope).append(symbol)
-            self.stats['max_symbols'] = len(self.symbols)
+            self.stats['max_symbols'] += 1
         except AttributeError:
             self.symbols[scope] = []
             self.symbols.get(scope).append(symbol)
-            self.stats['max_symbols'] = len(self.symbols)
+            self.stats['max_symbols'] += 1
 
     def _open_scope(self):
         if self.scope > 0:
@@ -279,8 +279,7 @@ class CodeGenerator(NodeVisitor):
             except TypeError:
                 pass
         self.scope += 1
-        if self.stats['max_scope'] < self.scope:
-            self.stats['max_scope'] = self.scope
+        self.stats['max_scope'] += 1
 
     def _close_scope(self):
         self.scope = max(0, self.scope - 1)
