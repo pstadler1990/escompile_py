@@ -103,6 +103,9 @@ let my_var = 42
 Use the `const` modifier after a variable assignment to make it a constant:
 `let MY_CONST = 42 const`. You cannot modify constants after the assignment!
 
+#### Hex numbers
+Use the standard hex notation `0x...` to enter hexadecimal numbers, i.e. `0x55AB`.
+
 ### Relational operators
 `evoscript` provides most of known `BASIC` operators:
 
