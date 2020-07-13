@@ -29,6 +29,15 @@ class TestScanner(unittest.TestCase):
         self.assertTrue(scanner.next_token().value == 42.69)
         self.assertRaises(ScanWrongTokenException, lambda: scanner.next_token())
 
+    def test_hex_number(self):
+        scanner = Scanner()
+        scanner.scan_str('0xDEAD 0xAFFE 0x55 0 01')
+        self.assertTrue(scanner.next_token().value == 57005)
+        self.assertTrue(scanner.next_token().value == 45054)
+        self.assertTrue(scanner.next_token().value == 85)
+        self.assertTrue(scanner.next_token().value == 0)
+        self.assertTrue(scanner.next_token().value == 1)
+
     def test_strings(self):
         scanner = Scanner()
         scanner.scan_str('"Hello World" "A very very very very very very very very long string" "This should"fail"')

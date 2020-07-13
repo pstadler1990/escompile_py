@@ -211,9 +211,9 @@ class Scanner:
         else:
             self._scan_complete()
 
-    def _peek(self) -> Optional[str]:
+    def _peek(self, off: int = 0) -> Optional[str]:
         if self._char_offset < self._str_len:
-            return self._str_stream[self._char_offset]
+            return self._str_stream[self._char_offset + off]
         else:
             return None
 
@@ -226,17 +226,34 @@ class Scanner:
 
     def _scan_number(self) -> float:
         tmp_num = ''
+        off = 0
         scan_float = False
-        while self._cur_char is not None and (self._cur_char.isdigit() or self._cur_char == '.'):
+        scan_hex = False
+        while self._cur_char is not None and (self._cur_char.isalpha() or self._cur_char.isdigit() or self._cur_char in ['.', 'x']):
+            if off == 0:
+                if self._cur_char == '0' and self._peek(1) == 'x':
+                    self._advance()
+                    self._advance()
+                    scan_hex = True
+                    scan_float = False
+
             if self._cur_char == '.':
                 # Leading dot without digit (.3)
                 if not scan_float:
+                    self._advance()
+                    tmp_num += '.'
                     scan_float = True
                 else:
                     raise ScanWrongTokenException()
 
-            tmp_num += self._cur_char
+            if self._cur_char.isdigit() or (scan_hex and self._cur_char in ['A', 'B', 'C', 'D', 'E', 'F']):
+                tmp_num += self._cur_char
+            else:
+                raise ScanWrongTokenException('Illegal number at {o}'.format(o=self._char_offset))
             self._advance()
+            off += 1
+        if scan_hex:
+            return float(int('0x' + tmp_num, 16))
         return float(tmp_num)
 
     def _scan_string(self) -> str:
