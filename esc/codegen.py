@@ -571,8 +571,13 @@ class CodeGenerator(NodeVisitor):
             for statement in node.right:
                 self.visit(statement)
 
-            self.visit(node.left)
-            self._emit_operation(OP.JZ, arg1=loop_head)
+            if node.left:
+                # Conditional loop..until / for..next
+                self.visit(node.left)
+                self._emit_operation(OP.JZ, arg1=loop_head)
+            else:
+                # Unconditional jump (loop..forever)
+                self._emit_operation(OP.JMP, arg1=loop_head)
 
             bytecnt_after_all = len(self.bytes_out)
 

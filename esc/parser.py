@@ -398,13 +398,6 @@ class Parser:
             if self._cur_token.ttype == TokenType.LOOP_FOREVER:
                 # Repeat Forever -> node.left condition is (1) or (1=1)
                 self._accept(TokenType.LOOP_FOREVER)
-                forever_cond = ExpressionNode()
-                v1 = ValueNode(value_type=ValueType.NUMBER)
-                v1.value = 1
-                forever_cond.left = v1
-                forever_cond.right = v1
-                forever_cond.op = OpType.NOTEQUALS
-                node.left = forever_cond
             elif self._cur_token.ttype == TokenType.LOOP_UNTIL:
                 # Repeat Until <expr> -> node.left condition is <expr>
                 self._accept(TokenType.LOOP_UNTIL)
