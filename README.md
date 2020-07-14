@@ -85,10 +85,74 @@ execution will terminate.
 ## Unit tests
 The package provides unit tests for all submodules `test_scanner`, `test_parser` and `test_codegen`.
 
-## Byte compression
-Currently all operations (except ones for string handling) are of equal size (9 bytes). 
-However, many operations don't require arguments at all, so we could trim the remaining 8 bytes. 
-At the current state this isn't implemented yet.
+## OP codes
+Here's a list of currently supported OP codes:
+
+| OP code | Value | Description | Implementation | Stack | 
+| ------- | ----- | ----------- | -------------- | ----- |
+| E_OP_NOP | 0x00 |                                                     |                       |               |
+| E_OP_PUSHG | 0x10 |        Push global variable                       | PUSHG [index]         | s[-1]         | 
+| E_OP_POPG |  0x11 |        Pop global variable 						| POPG [index]   		|        		|
+| E_OP_PUSHL |  0x12 |       Push local variable 						| PUSHL [index]         | s[-1]         |
+| E_OP_POPL |  0x13 |        Pop local variable 						| POPG [index]          |      			|
+| E_OP_PUSH |  0x14 |        Push variable onto top of stack 			| PUSH 3                |          		|
+| E_OP_PUSHS |  0x15 |       Push string 								| PUSHS [ascii byte(s)] |				|
+| E_OP_DATA |  0x16 |        Size of following data segment 			| DATA [entries]	    |				|
+| E_OP_PUSHA |  0x17 |       Push index of followed array access 		| PUSHA [index]			|				|
+| E_OP_PUSHAS |  0x18 |      Push index of followed array from stack 	| PUSHAS 				|				|
+| E_OP_EQ |  0x20 |          Equal check 								| EQ 					| s[-1]==s[-2]	|  	
+| E_OP_LT |  0x21 |          Less than 								    | LT 					| s[-1]<s[-2]   |  	
+| E_OP_GT |  0x22 |          Greater than 							    | GT 					| s[-1]<s[-2]   |	
+| E_OP_LTEQ |  0x23 |        Less than or equal 						| LTEQ 					| s[-1]<=s[-2]  |	
+| E_OP_GTEQ |  0x24 |        Greater than or equal 					    | GTEQ 					| s[-1]>=s[-2]  |	
+| E_OP_NOTEQ |  0x25 |       Not equal check 							| NOTEQ 				| s[-1]!=[s-2]	|	
+| E_OP_ADD |  0x30 | 													|                       |               |
+| E_OP_NEG |  0x31 | 													|                       |               |
+| E_OP_SUB |  0x32 | 													|                       |               |
+| E_OP_MUL |  0x33 | 													|                       |               |
+| E_OP_DIV |  0x34 | 													|                       |               |
+| E_OP_AND |  0x35 | 													|                       |               |
+| E_OP_OR  |  0x36 | 													|                       |               |
+| E_OP_NOT |  0x37 | 													|                       |               |
+| E_OP_CONCAT |  0x38 |     Concatenate strings                         | CONCAT                | s[s-1].[s-2]  |
+| E_OP_MOD |  0x39 |        Modulo                                      | MOD                   | s[-1] % s[-2] |     
+| E_OP_JZ |  0x40 |         Jump if zero                                | JZ [addr]             |               |               
+| E_OP_JMP |  0x41 |        unconditional jump                          | JMP [addr]            |               |         
+| E_OP_JFS |  0x42 |        Jump from stack value                       | JFS s[s-1]		    |	    	    |		   
+| E_OP_JMPFUN |  0x43 |     unconditional jump to function              | JMPFUN [addr]		    |			    |       
+| E_OP_CALL |  0x44 |       Calls an external defined subroutine        | CALL s[s-1]		    |			    |    	   
+| E_OP_PRINT |  0x50 |      Print statement (debug)                     | PRINT(expr)           |               |    
+| E_OP_ARGTYPE |  0x51 |    Argtype statement                           | ARGTYPE(expr)		    |			    |   
+| E_OP_LEN |  0x52 |        Len statement                               | LEN(expr)		        |			    |	   
+| E_OP_ARRAY |  0x53 |  	Array (dim) statement                       | ARRAY(n)		        |               |
+
+### No-data OP codes
+The following OP codes require no data and are therefore only a single byte wide:
+
+```
+OP.NOP, 
+OP.PUSHAS, 
+OP.EQ, 
+OP.LT, 
+OP.GT, 
+OP.LTEQ, 
+OP.GTEQ, 
+OP.NOTEQ, 
+OP.ADD, 
+OP.NEG, 
+OP.SUB,
+OP.MUL, 
+OP.DIV, 
+OP.AND, 
+OP.OR, 
+OP.NOT, 
+OP.MOD, 
+OP.PRINT, 
+OP.ARGTYPE, 
+OP.LEN, 
+OP.PUSHS, 
+OP.ARRAY
+```
 
 ---
 ## Language reference
