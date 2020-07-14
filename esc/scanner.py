@@ -231,7 +231,7 @@ class Scanner:
         scan_hex = False
         while self._cur_char is not None and (self._cur_char.isalpha() or self._cur_char.isdigit() or self._cur_char in ['.', 'x']):
             if off == 0:
-                if self._cur_char == '0' and self._peek(1) == 'x':
+                if self._cur_char == '0' and self._peek(1).lower() == 'x':
                     self._advance()
                     self._advance()
                     scan_hex = True
@@ -246,7 +246,7 @@ class Scanner:
                 else:
                     raise ScanWrongTokenException()
 
-            if self._cur_char.isdigit() or (scan_hex and self._cur_char in ['A', 'B', 'C', 'D', 'E', 'F']):
+            if self._cur_char.isdigit() or (scan_hex and self._cur_char.upper() in ['A', 'B', 'C', 'D', 'E', 'F']):
                 tmp_num += self._cur_char
             else:
                 raise ScanWrongTokenException('Illegal number at {o}'.format(o=self._char_offset))
