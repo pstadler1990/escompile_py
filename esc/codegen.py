@@ -51,8 +51,14 @@ class OP(enum.Enum):
     ARRAY = 0x53
 
     @classmethod
+    def get_OP(cls, b_id):
+        for a in OP:
+            if a.value == b_id:
+                return a
+
+    @classmethod
     def has(cls, value):
-        return value in cls._value2member_map_
+        return OP.get_OP(value) is not None
 
 
 class Symbol(ABC):
@@ -212,7 +218,7 @@ class CodeGenerator(NodeVisitor):
                         ostr += chr(self.bytes_out[bc + 9 + brem])
                         brem += 1
 
-                    print("{lc} @ {adr}\t\t{op}\t\"{str}\"".format(lc=lc, adr=bc, op=OP.value2member_map_[b], str=ostr))
+                    print("{lc} @ {adr}\t\t{op}\t\"{str}\"".format(lc=lc, adr=bc, op=OP.get_OP(b), str=ostr))
                     bc += strlen + 9
                 else:
                     if b in [OP.NOP.value, OP.PUSHAS.value, OP.EQ.value, OP.LT.value, OP.GT.value,
@@ -222,10 +228,10 @@ class CodeGenerator(NodeVisitor):
                         brem = 1
                         arg1 = 0
                     else:
-                        arg1 = self._format_arg(bc, op=OP.value2member_map_[b])
+                        arg1 = self._format_arg(bc, op=OP.get_OP(b))
                         brem = 9
                     # arg2 = self._format_arg(bc + 9)
-                    print("{lc} @ {adr}\t\t{op}\t\t{a1}".format(lc=lc, adr=bc, op=OP.value2member_map_[b], a1=arg1))
+                    print("{lc} @ {adr}\t\t{op}\t\t{a1}".format(lc=lc, adr=bc, op=OP.get_OP(b), a1=arg1))
 
                     while brem > 0:
                         brem -= 1
